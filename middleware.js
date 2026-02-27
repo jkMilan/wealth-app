@@ -1,25 +1,24 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
 
+// Define the routes that REQUIRE a login
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/account(.*)",
   "/transaction(.*)",
 ]);
 
-export default clerkMiddleware((auth, req) => {
-  const { userId } = auth();
-
-  if (!userId && isProtectedRoute(req)) {
-    return NextResponse.redirect(new URL("/signin", req.url));
+export default clerkMiddleware(async (auth, req) => {
+  // Use await auth() for Clerk v6+ compatibility
+  // auth.protect() is the "standard" way to handle redirects safely
+  if (isProtectedRoute(req)) {
+    await auth.protect(); 
   }
-
-  return NextResponse.next();
 });
 
 export const config = {
   matcher: [
-    "/((?!_next|.*\\..*).*)",
+    // Optimized matcher to ignore static files and Next.js internals
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
   ],
 };
