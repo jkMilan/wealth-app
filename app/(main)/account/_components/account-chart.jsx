@@ -98,19 +98,18 @@ const AccountChart = ({ transactions }) => {
                     </div>
                     <div className="text-center">
                         <p className="text-muted-foreground">Total Balance</p>
-                        <p 
-                        className={`text-lg font-bold ${
-                            totals.income - totals.expense > 0
-                                ? "text-green-500"
-                                : "text-red-500"
-                        }`}
+                        <p
+                            className={`text-lg font-bold ${totals.income - totals.expense > 0
+                                    ? "text-green-500"
+                                    : "text-red-500"
+                                }`}
                         >
                             LKR {(totals.income - totals.expense).toFixed(2)}
                         </p>
                     </div>
                 </div>
-                <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <BarChart
                             data={filteredData}
                             margin={{
@@ -126,15 +125,15 @@ const AccountChart = ({ transactions }) => {
                                 fontSize={12}
                                 tickLine={false}
                                 axisLine={false}
-                                tickFormat={(value) => `LKR ${value}`} 
+                                tickFormat={(value) => `LKR ${value}`}
                             />
                             <Tooltip formatter={(value) => [`LKR ${value}`, undefined]} />
                             <Legend />
-                            <Bar dataKey="income" name="Income" fill="#8884d8" radius={[4, 4, 0, 0]}/>
-                            <Bar dataKey="expense" name="Expense" fill="#82ca9d" radius={[4, 4, 0, 0]}/>
+                            <Bar dataKey="income" name="Income" fill="#8884d8" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="expense" name="Expense" fill="#82ca9d" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
-            </div>
+                </div>
             </CardContent>
         </Card>
     );
