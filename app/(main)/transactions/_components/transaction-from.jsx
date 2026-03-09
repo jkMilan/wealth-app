@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { transactionSchema } from '@/app/lib/schema';
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -22,6 +22,12 @@ import { toast } from "sonner";
 
 const AddTransactionForm = ({ accounts, categories, editMode = false, initialData = null }) => {
     const router = useRouter();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const { register, handleSubmit, formState: { errors }, setValue, watch, reset, getValues } = useForm({
         resolver: zodResolver(transactionSchema),
         defaultValues: editMode && initialData ? {
@@ -100,6 +106,8 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
             toast.success("Receipt scanned successfully");
         }
     };
+
+    if (!mounted) return null;
 
     return <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         {/* AI Recipt Scanner */}

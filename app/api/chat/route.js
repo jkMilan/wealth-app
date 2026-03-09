@@ -40,7 +40,7 @@ export async function POST(req) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'mistral', 
+        model: 'llama3', 
         prompt: systemPrompt,
         stream: false
       })
