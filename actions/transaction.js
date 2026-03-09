@@ -105,6 +105,43 @@ function calculateNextRecurringDate(startDate, interval) {
     return date;
 }
 
+export async function scanReceipt(file) {
+    try {
+        // Prepare the image to be sent to Python via FormData
+        const formData = new FormData();
+        formData.append("file", file);
+
+        // Send to your local Python FastAPI server
+        const response = await fetch("http://127.0.0.1:8000/api/ml/ocr", {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Python ML Service Error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error("Failed to parse receipt data.");
+        }
+
+        return {
+            amount: parseFloat(data.amount) || 0,
+            date: new Date(),
+            description: data.description || "Scanned Receipt",
+            merchantName: data.merchantName || "Unknown Merchant",
+            category: data.category || "other-expense",
+        };
+
+    } catch (error) {
+        console.error("OCR API Error:", error);
+        throw new Error("Failed to scan receipt via ML service.");
+    }
+}
+
+
 
 export async function getTransaction(id) {
     const { userId } = await auth();
@@ -184,4 +221,3 @@ export async function updateTransaction(id, data) {
         throw new Error(error.message);
     }
 }
-

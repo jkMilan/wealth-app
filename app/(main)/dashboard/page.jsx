@@ -6,6 +6,8 @@ import { getUserAccounts } from '@/actions/dashboard';
 import AccountCard from './_components/account-card';
 import { getCurrentBudget } from '@/actions/budget';
 import BudgetProgress from './_components/budget-progress';
+import { getFinancialProfile } from "@/actions/ml-insights";
+import { MlInsightsCard } from "./_components/ml-insights-card";
 
 async function DashboardPage() {
   const accounts = await getUserAccounts();
@@ -16,6 +18,8 @@ async function DashboardPage() {
   if(defaultAccount){
     budgetData = await getCurrentBudget(defaultAccount.id);
   }
+
+  const mlInsights = await getFinancialProfile();
 
   return (
     <div className="space-y-8">
@@ -28,6 +32,9 @@ async function DashboardPage() {
       )}
 
       {/* Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <MlInsightsCard insights={mlInsights} />
+      </div>
 
       {/* Account Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

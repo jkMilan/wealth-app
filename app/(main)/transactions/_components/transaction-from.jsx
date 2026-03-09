@@ -16,6 +16,8 @@ import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Switch } from '@/components/ui/switch';
 import { useRouter } from 'next/navigation';
+import ReciptScanner from './recipt-scanner';
+import { toast } from "sonner";
 
 
 const AddTransactionForm = ({ accounts, categories, editMode = false, initialData = null }) => {
@@ -50,6 +52,8 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
     const type = watch("type");
     const isRecurring = watch("isRecurring");
     const date = watch("date");
+    const category = watch("category");
+    const accountId = watch("accountId");
 
     const onSubmit = async (data) => {
         const fromData = {
@@ -75,8 +79,31 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
         (category) => category.type === type
     );
 
+    const handleScanComplete = (scannedData) => {
+        if (scannedData) {
+            if (scannedData.amount) setValue("amount", scannedData.amount.toString());
+            if (scannedData.date) setValue("date", new Date(scannedData.date));
+            if (scannedData.description) setValue("description", scannedData.description);
+            
+            if (scannedData.category) {
+                // Find matching category by name, ignoring case
+                const matchedCategory = categories.find(
+                    (c) => c.name.toLowerCase() === scannedData.category.toLowerCase() || 
+                           c.id === scannedData.category
+                );
+                
+                if (matchedCategory) {
+                    setValue("category", matchedCategory.id);
+                }
+            }
+            
+            toast.success("Receipt scanned successfully");
+        }
+    };
+
     return <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         {/* AI Recipt Scanner */}
+        <ReciptScanner onScanComplete={handleScanComplete} />
 
         <div className="space-y-2">
             <label className="text-sm font-medium">Type</label>
@@ -139,15 +166,15 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
             <label className="text-sm font-medium">Category</label>
             <Select
                 onValueChange={(value) => setValue("category", value)}
-                defaultValue={getValues("category")}
+                value={category}
             >
                 <SelectTrigger>
                     <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
                 <SelectContent>
-                    {filterdCategories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                            {category.name}
+                    {filterdCategories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
                         </SelectItem>
                     ))}
                 </SelectContent>

@@ -100,3 +100,25 @@ export async function getUserAccounts() {
 
     return serializeAccount;
 }
+
+export async function getAiInsights(userId, income, expenses, count) {
+  try {
+    const res = await fetch('http://127.0.0.1:8000/api/ml/cluster', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        monthly_income: income,
+        monthly_expenses: expenses,
+        transaction_count: count
+      })
+    });
+    
+    const mlData = await res.json();
+    return mlData; 
+    // Returns: { profile: "Saver", custom_advice: "..." }
+  } catch (error) {
+    console.error("ML Service offline", error);
+    return null;
+  }
+}

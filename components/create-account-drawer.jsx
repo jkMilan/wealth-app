@@ -117,7 +117,7 @@ const CreateAccountDrawer = ({ children }) => {
                                 </p>
                             </div>
                             <Switch
-                                id="default-account"
+                                id="isDefault"
                                 onCheckedChange={(checked) => setValue("isDefault", checked)}
                                 checked={watch("isDefault")}
                             />

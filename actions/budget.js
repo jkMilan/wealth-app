@@ -33,7 +33,7 @@ export const getCurrentBudget = async () => {
             currenDate.getMonth() + 1,
             0
         );
-        
+
         const expanses = await db.transaction.aggregate({
             where: {
                 userId: user.id,
