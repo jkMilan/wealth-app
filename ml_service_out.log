@@ -1,0 +1,4 @@
+Successfully loaded local spaCy NLP model.
+Successfully loaded trained WELTH ML model from: welth-ml-service\welth_kmeans_model.pkl
+Starting WELTH ML Service on http://0.0.0.0:8000
+INFO:     127.0.0.1:52776 - "GET /api/ml/ocr HTTP/1.1" 405 Method Not Allowed

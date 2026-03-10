@@ -129,7 +129,7 @@ export async function scanReceipt(file) {
 
         return {
             amount: parseFloat(data.amount) || 0,
-            date: new Date(),
+            date: data.date ? new Date(data.date) : new Date(),
             description: data.description || "Scanned Receipt",
             merchantName: data.merchantName || "Unknown Merchant",
             category: data.category || "other-expense",
@@ -140,8 +140,6 @@ export async function scanReceipt(file) {
         throw new Error("Failed to scan receipt via ML service.");
     }
 }
-
-
 
 export async function getTransaction(id) {
     const { userId } = await auth();
@@ -217,6 +215,53 @@ export async function updateTransaction(id, data) {
         revalidatePath(`/account/${data.accountId}`);
 
         return { success: true, data: serializeAmount(transaction) };
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
+export async function deleteTransaction(id) {
+    try {
+        const { userId } = await auth();
+        if (!userId) throw new Error("Unauthorized");
+
+        const user = await db.user.findUnique({
+            where: { clerkUserId: userId },
+        });
+
+        if (!user) throw new Error("User not found");
+
+        // 1. Find the transaction to get its amount, type, and accountId
+        const transaction = await db.transaction.findUnique({
+            where: { id, userId: user.id },
+        });
+
+        if (!transaction) throw new Error("Transaction not found");
+
+        // 2. Reverse the balance change
+        // If it was an EXPENSE, deleting it gives money back (increment).
+        // If it was INCOME, deleting it takes money away (decrement).
+        const balanceChange = transaction.type === "EXPENSE" 
+            ? transaction.amount.toNumber() 
+            : -transaction.amount.toNumber();
+
+        // 3. Delete transaction and update account balance in a single transaction block
+        await db.$transaction(async (tx) => {
+            await tx.transaction.delete({
+                where: { id },
+            });
+
+            await tx.account.update({
+                where: { id: transaction.accountId },
+                data: { balance: { increment: balanceChange } },
+            });
+        });
+
+        // 4. Update the UI
+        revalidatePath("/dashboard");
+        revalidatePath(`/account/${transaction.accountId}`);
+
+        return { success: true };
     } catch (error) {
         throw new Error(error.message);
     }

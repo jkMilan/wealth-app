@@ -4,20 +4,25 @@ import { db } from '@/lib/prisma';
 export async function POST(req) {
   try {
     const body = await req.json();
-    
-    // This will print the incoming iPhone data in your terminal!
     console.log("SUCCESS! RECEIVED SMS DATA:", body); 
     
     const { message, sender } = body;
 
-    const amountMatch = message.match(/(?:rs\.?|usd|\$)?\s*(\d+(?:,\d+)*(?:\.\d+)?)/i);
-    const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
+    // 1. Send the raw SMS to your local Python ML Service
+    const pythonResponse = await fetch('http://127.0.0.1:8000/api/ml/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, sender })
+    });
 
-    const isExpense = /debited|spent|paid|sent/i.test(message);
-    const type = isExpense ? 'EXPENSE' : 'INCOME';
+    if (!pythonResponse.ok) {
+        throw new Error("Failed to process SMS through local AI");
+    }
+
+    const aiData = await pythonResponse.json();
+    const { amount, type, merchant } = aiData;
 
     if (amount > 0) {
-      // 1. Automatically find your default account in the database
       const defaultAccount = await db.account.findFirst({
         where: { isDefault: true }
       });
@@ -27,14 +32,14 @@ export async function POST(req) {
         return NextResponse.json({ error: 'No default account' }, { status: 400 });
       }
 
-      // 2. Save the transaction to that specific account
+      // 2. Save the transaction with the highly accurate AI-parsed data
       await db.transaction.create({
         data: {
           amount: type === 'EXPENSE' ? -amount : amount,
-          description: `SMS from ${sender}: ${message.substring(0, 30)}...`,
+          description: `SMS: ${merchant}`,
           date: new Date(),
           type: type,
-          accountId: defaultAccount.id, // Uses the real ID dynamically!
+          accountId: defaultAccount.id, 
         }
       });
       console.log(`Saved ${type} of Rs. ${amount} to database!`);

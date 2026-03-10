@@ -1,7 +1,7 @@
 import React from 'react';
 import { getUserAccounts } from '@/actions/dashboard';
 import { getTransaction } from '@/actions/transaction';
-import AddTransactionForm from '@/app/(main)/transactions/_components/transaction-from';
+import AddTransactionForm from '@/app/(main)/transactions/_components/transaction-form';
 import { defaultCategories } from '@/data/categories';
 import { notFound } from 'next/navigation';
 

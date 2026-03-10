@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Bar, BarChart, CartesianGrid, Label, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { startOfDay, endOfDay, subDays, format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +17,11 @@ const DATE_RANGES = {
 
 const AccountChart = ({ transactions }) => {
     const [dateRange, setDateRange] = useState("1M");
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     const filteredData = useMemo(() => {
         const range = DATE_RANGES[dateRange];
@@ -62,6 +67,8 @@ const AccountChart = ({ transactions }) => {
             { income: 0, expense: 0 }
         );
     }, [filteredData]);
+
+    if (!isMounted) return null;
 
     return (
         <Card>

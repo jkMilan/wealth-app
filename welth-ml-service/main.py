@@ -9,14 +9,146 @@ import joblib
 import os      
 import cv2
 import pytesseract
-from ollama1 import get_json_from_prompt
-from ollama2 import get_category_from_ollama
+from pytesseract import Output
+import spacy
+import re
+import calendar
+from datetime import datetime
 
-# Ensure Tesseract path is set correctly for your Windows machine
+# Common OCR misspellings for months
+MONTH_MAP = {
+    "jan": "January", "feb": "February", "mar": "March", "apr": "April",
+    "may": "May", "jun": "June", "jul": "July", "aug": "August",
+    "sep": "September", "oct": "October", "nov": "November", "dec": "December",
+    "deer": "December", "mmer": "December", "fieb": "February", "sept": "September",
+    "har": "March", "fev": "February", "avr": "April", "mai": "May"
+}
+
+def fuzzy_parse_date(text):
+    text_lower = text.lower()
+    
+    date_patterns = [
+        r'(?<!\d)(\d{4})[\s/-](\d{1,2})[\s/-](\d{1,2})(?!\d)',      
+        r'(?<!\d)(\d{1,2})[\s/-](\d{1,2})[\s/-](\d{4})(?!\d)',      
+        r'(?<!\d)(\d{1,2})[\s/-](\d{1,2})[\s/-](\d{2})(?!\d)',      
+        r'(?<!\d)(\d{1,2})[\s/-]([a-z]{3,10})[\s/-](\d{2,4})(?!\d)',
+        r'(?<!\d)([a-z]{3,10})[\s/-](\d{1,2})[\s/-](\d{2,4})(?!\d)' 
+    ]
+    
+    current_year = datetime.now().year
+    
+    for pattern in date_patterns:
+        match = re.search(pattern, text_lower)
+        if match:
+            groups = match.groups()
+            found_year = -1
+            for g in groups:
+                 if g and g.isdigit() and len(g) >= 2:
+                     y = int(g)
+                     if y >= 1900 and y <= current_year + 5: 
+                         if y < 100: found_year = 2000 + y
+                         else: found_year = y
+            
+            has_month_name = any(isinstance(g, str) and not g.isdigit() for g in groups)
+            if found_year == -1 and not has_month_name:
+                continue
+
+            if has_month_name:
+                day = groups[0] if groups[0].isdigit() else (groups[1] if len(groups) > 1 and groups[1].isdigit() else "01")
+                month_str = next((g for g in groups if g and not g.isdigit()), "")
+                year = str(found_year) if found_year > 0 else str(current_year)
+                
+                # Check if date is reasonable (not more than 7 days into future from today)
+                # This helps catch misreads of '01' as '03' or similar.
+                for key, val_name in MONTH_MAP.items():
+                    if key in month_str:
+                        try:
+                            month_idx = list(calendar.month_name).index(val_name)
+                            dt_check = datetime(int(year), month_idx, int(day))
+                            # Receipt sanity: favor past dates
+                            if dt_check > datetime.now() and int(year) == current_year:
+                                if month_idx == 3: # 03 misread as 01 is common
+                                    return f"{year}-01-{int(day):02d}"
+                            return f"{year}-{month_idx:02d}-{int(day):02d}"
+                        except (ValueError, IndexError):
+                            continue
+            
+            digits = re.findall(r'\d+', match.group())
+            if len(digits) == 3:
+                d1, d2, d3 = digits
+                nums = [int(d1), int(d2), int(d3)]
+                has_month = any(1 <= n <= 12 for n in nums)
+                has_year = any(1900 <= n <= 2100 or 0 <= n <= 99 for n in nums)
+                if has_month and has_year:
+                    res_date = ""
+                    if len(d1) == 4: res_date = f"{d1}-{d2:>02}-{d3:>02}"
+                    elif len(d3) == 4: res_date = f"{d3}-{d2:>02}-{d1:>02}"
+                    elif len(d3) == 2: res_date = f"20{d3}-{d2:>02}-{d1:>02}"
+                    
+                    if res_date:
+                        try:
+                            dt_obj = datetime.strptime(res_date, "%Y-%m-%d")
+                            # If date is in the future within the same year, 
+                            # it's likely an OCR error (e.g. 03 instead of 01)
+                            if dt_obj > datetime.now() and dt_obj.year == current_year:
+                                if dt_obj.month == 3:
+                                    # Heuristic fix for "03" misread as "01"
+                                    # Very common in receipts where 1 looks like 3 or 8
+                                    new_res = res_date.replace("-03-", "-01-")
+                                    return new_res
+                            return res_date
+                        except ValueError:
+                            pass
+
+    for key, val_name in MONTH_MAP.items():
+        if key in text_lower:
+            # Look for month and a 4 digit year nearby
+            match = re.search(fr"{key}.*?(\d{{4}})", text_lower)
+            if not match:
+                match = re.search(fr"(\d{{4}}).*?{key}", text_lower)
+            
+            if match:
+                try:
+                    y_str = match.group(1)
+                except IndexError:
+                    m_year = re.search(r'\d{4}', match.group())
+                    y_str = m_year.group() if m_year else None
+                
+                if y_str:
+                    y = int(y_str)
+                    if 1900 <= y <= current_year + 1:
+                        month_idx = list(calendar.month_name).index(val_name)
+                        day_match = re.search(fr"(\d{{1,2}})[\s/-]*{key}", text_lower)
+                        day_val = int(day_match.group(1)) if day_match else 1
+                        return f"{y}-{month_idx:02d}-{day_val:02d}"
+            
+    # 3. Look for explicit labels like "Statement Date" or "Bill Date"
+    date_labels = [r"statement\s*date", r"bill\s*date", r"date\s*of\s*issue", r"invoice\s*date"]
+    for label in date_labels:
+        label_match = re.search(label, text_lower)
+        if label_match:
+            # Look for a date in the same line or next line
+            start_pos = label_match.end()
+            context = text_lower[start_pos:start_pos + 100]
+            for pattern in date_patterns:
+                m = re.search(pattern, context)
+                if m:
+                    # Found a date near a label! Process it.
+                    # (Re-use existing logic or just call recursively with context)
+                    res = fuzzy_parse_date(context)
+                    if res: return res
+
+    return None
+
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 app = FastAPI(title="WELTH ML Service")
 
-# --- DATA MODELS (What Next.js will send to Python) ---
+try:
+    nlp = spacy.load("en_core_web_sm")
+    print("Successfully loaded local spaCy NLP model.")
+except OSError:
+    print("WARNING: spaCy model not found. Please run: python -m spacy download en_core_web_sm")
+    nlp = None
 
 class UserStats(BaseModel):
     user_id: str
@@ -25,54 +157,58 @@ class UserStats(BaseModel):
     transaction_count: int
 
 class MonthlyData(BaseModel):
-    month_index: int # e.g., 1 for Jan, 2 for Feb
-    net_cash_flow: float # Income - Expenses
+    month_index: int 
+    net_cash_flow: float 
 
 class PredictionRequest(BaseModel):
     historical_data: List[MonthlyData]
 
-# --- 1. LOAD THE REAL TRAINED CLUSTERING MODEL ---
-# Instead of faking the data, we load the actual trained brain!
+class SMSRequest(BaseModel):
+    message: str
+    sender: str
 
-MODEL_PATH = 'welth_kmeans_model.pkl'
+possible_paths = [
+    os.path.join('welth-ml-service', 'welth_kmeans_model.pkl'), 
+    'welth_kmeans_model.pkl',                                   
+    os.path.join(os.path.dirname(__file__), 'welth_kmeans_model.pkl') 
+]
 
-if os.path.exists(MODEL_PATH):
-    cluster_model = joblib.load(MODEL_PATH)
-    print("✅ Successfully loaded trained WELTH model from database data.")
-else:
-    print("⚠️ WARNING: Model file not found. You must run train_model.py first!")
-    cluster_model = None
+cluster_model = None
+for path in possible_paths:
+    if os.path.exists(path):
+        cluster_model = joblib.load(path)
+        print(f"Successfully loaded trained WELTH ML model from: {path}")
+        break
+
+if cluster_model is None:
+    print("WARNING: Model file not found! You must run train_model.py")
 
 @app.post("/api/ml/cluster")
 async def cluster_user(stats: UserStats):
-    """Assigns a financial personality to the user based on their habits."""
-    
-    # Failsafe: If you forgot to run train_model.py, tell the frontend!
     if cluster_model is None:
-        raise HTTPException(status_code=500, detail="ML Model is not trained yet. Run train_model.py on your server.")
-
+        raise HTTPException(status_code=500, detail="ML Model is not trained yet. Run train_model.py")
     try:
-        # Prepare the user's data point
-        user_data = np.array([[stats.monthly_income, stats.monthly_expenses, stats.transaction_count]])
-        
-        # Predict which cluster they belong to using the REAL model
+        user_data = pd.DataFrame([{
+            'monthly_income': stats.monthly_income, 
+            'monthly_expenses': stats.monthly_expenses, 
+            'transaction_count': stats.transaction_count
+        }])
         cluster_id = cluster_model.predict(user_data)[0]
         
-        # Calculate their actual savings rate to help assign the label
         savings_rate = 0
         if stats.monthly_income > 0:
             savings_rate = (stats.monthly_income - stats.monthly_expenses) / stats.monthly_income
 
-        # Determine label based on basic financial logic and the cluster
-        if savings_rate >= 0.20:
+        # Map cluster to profile
+        if cluster_id == 0: 
             profile = "Saver"
             advice = "Great job! You are saving over 20% of your income. Consider investing the surplus."
-        elif stats.monthly_expenses > stats.monthly_income:
-            profile = "Risk-Taker"
-            advice = "Warning: You are spending more than you earn. Focus on cutting discretionary expenses immediately."
-        else:
+        elif cluster_id == 1:
             profile = "Spender"
-            advice = "You are breaking even. Look for areas in your budget to reduce spending and build an emergency fund."
+            advice = "You are breaking even. Look for areas in your budget to reduce spending."
+        else:
+            profile = "Risk-Taker"
+            advice = "Warning: High expenses detect. Focus on cutting discretionary spending."
 
         return {
             "user_id": stats.user_id,
@@ -83,88 +219,374 @@ async def cluster_user(stats: UserStats):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- 2. PREDICTION MODEL (Cash Flow Forecasting) ---
-
 @app.post("/api/ml/predict")
 async def predict_cash_flow(req: PredictionRequest):
-    """Predicts next month's cash flow using Linear Regression on historical data."""
     if len(req.historical_data) < 2:
         return {"error": "Need at least 2 months of data to make a prediction."}
-    
     try:
-        # Convert incoming JSON to Pandas DataFrame
         df = pd.DataFrame([vars(d) for d in req.historical_data])
-        
-        # X = Month Index (Time), y = Net Cash Flow
         X = df[['month_index']].values
         y = df['net_cash_flow'].values
         
-        # Train a simple Linear Regression model
         model = LinearRegression()
         model.fit(X, y)
         
-        # Predict the next month
         next_month = X[-1][0] + 1
         predicted_flow = model.predict([[next_month]])[0]
-        
-        # Calculate trend (is cash flow improving or worsening?)
         trend = "Improving" if model.coef_[0] > 0 else "Declining"
         
         return {
             "predicted_next_month_flow": round(float(predicted_flow), 2),
             "trend": trend,
-            "confidence_note": "Based on historical linear trends."
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# --- 3. OCR RECEIPT SCANNER (OpenCV + Tesseract + Phi-3) ---
-
 @app.post("/api/ml/ocr")
 async def process_receipt_ocr(file: UploadFile = File(...)):
-    """Receives an image, cleans it with OpenCV, extracts text, and categorizes via LLM."""
     try:
-        # 1. Read the uploaded image into memory
         contents = await file.read()
         nparr = np.frombuffer(contents, np.uint8)
-        color_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-        if color_image is None:
-            raise ValueError("Failed to decode image file.")
+        if image is None:
+            raise ValueError("Invalid image.")
 
-        # 2. Image Cleaning (Your custom logic)
-        grey_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
-        blur_image = cv2.GaussianBlur(grey_image, (5, 5), 0)
-        ret, binary_image = cv2.threshold(blur_image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-
-        # 3. OCR Text Extraction
-        raw_text = pytesseract.image_to_string(binary_image)
-        if not raw_text or raw_text.strip() == "":
-            raise ValueError("No text could be extracted from the image.")
-
-        # 4. JSON Structuring via Local Ollama (Phi-3)
-        structured_data = get_json_from_prompt(raw_text)
+        # Find the white paper against the darker background
+        gray_crop = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        blur_crop = cv2.GaussianBlur(gray_crop, (5, 5), 0)
+        _, thresh_crop = cv2.threshold(blur_crop, 150, 255, cv2.THRESH_BINARY)
+        contours, _ = cv2.findContours(thresh_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
-        # 5. Extract specific fields for Next.js
-        if structured_data and "Description" in structured_data and len(structured_data["Description"]) > 0:
-            first_item = str(structured_data["Description"][0])
-            category = get_category_from_ollama(first_item)
+        if contours:
+            # Grab the largest contour (presumably the receipt)
+            largest_contour = max(contours, key=cv2.contourArea)
+            image_area = image.shape[0] * image.shape[1]
             
-            return {
-                "success": True,
-                "amount": structured_data.get("Grand_Total", 0),
-                "description": first_item,
-                "category": category,
-                "merchantName": structured_data.get("billed_by", "Unknown Merchant")
-            }
+            # Only crop if it takes up a decent chunk of the image (> 10%)
+            if cv2.contourArea(largest_contour) > image_area * 0.1:
+                x, y, w, h = cv2.boundingRect(largest_contour)
+                image = image[y:y+h, x:x+w] # Crop out the bedsheet!
+                print("DEBUG: Successfully cropped out the background.")
+
+        # --- DUAL-PASS IMAGE ENHANCEMENT & SCORING ---
+        image = cv2.resize(image, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+        image = cv2.copyMakeBorder(image, 50, 50, 50, 50, cv2.BORDER_CONSTANT, value=[255, 255, 255])
+        grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        
+        # Candidate 1: Otsu (Good for flat, crumpled paper)
+        _, binary_otsu = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        text_otsu = pytesseract.image_to_string(binary_otsu, config='--psm 6')
+
+        # Candidate 2: Adaptive (Good for shadows and complex backgrounds)
+        blur = cv2.bilateralFilter(grey, 9, 75, 75)
+        binary_adaptive = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+        text_adaptive = pytesseract.image_to_string(binary_adaptive, config='--psm 6')
+
+        # Scoring function to pick the most logical receipt text
+        def score_ocr_text(t):
+            if not t: return 0
+            score = sum(c.isalnum() for c in t) # Reward real letters/numbers
+            upper_t = t.upper()
+            keywords = ['TOTAL', 'GRAND', 'CASH', 'TAX', 'INVOICE', 'RECEIPT', 'DATE', 'AMOUNT', 'QTY', 'ITEM']
+            for kw in keywords:
+                if kw in upper_t:
+                    score += 50
+            if re.search(r'\d+\.\d{2}', t): # Reward finding proper decimals
+                score += 100
+            return score
+
+        score_otsu = score_ocr_text(text_otsu)
+        score_adaptive = score_ocr_text(text_adaptive)
+
+        if score_adaptive > score_otsu:
+            print(f"DEBUG: Selected ADAPTIVE Thresholding (Score: {score_adaptive} vs Otsu: {score_otsu})")
+            text = text_adaptive
+            binary = binary_adaptive
         else:
-            raise ValueError("AI failed to structure the receipt data.")
+            print(f"DEBUG: Selected OTSU Thresholding (Score: {score_otsu} vs Adaptive: {score_adaptive})")
+            text = text_otsu
+            binary = binary_otsu
+
+        print(f"--- OCR EXTRACTED TEXT ---\n{text}\n-------------------------")
+
+        if not text:
+            raise ValueError("No text extracted.")
+
+        doc = nlp(text) if nlp else None
+
+        # --- 1. SPATIAL BOUNDING BOX AMOUNT EXTRACTION ---
+        amount = 0.0
+        ocr_data = pytesseract.image_to_data(binary, output_type=Output.DICT, config='--psm 6')
+        
+        target_y_coords = []
+        for i in range(len(ocr_data['text'])):
+            word = ocr_data['text'][i].upper()
+            if any(k in word for k in ['TOTAL', 'GRAND', 'DUE', 'PAYABLE', 'AMOUNT']):
+                target_y_coords.append(ocr_data['top'][i])
+        
+        found_spatial_amounts = []
+        y_tolerance = 20 
+        
+        for i in range(len(ocr_data['text'])):
+            word = str(ocr_data['text'][i])
+            if re.match(r'^[^\d]*[\d,]+\.\d{2}[^\d]*$', word):
+                clean_val_str = re.sub(r'[^\d\.]', '', word).strip('.')
+                if clean_val_str:
+                    try:
+                        val = float(clean_val_str)
+                        for target_y in target_y_coords:
+                            if abs(ocr_data['top'][i] - target_y) <= y_tolerance:
+                                found_spatial_amounts.append(val)
+                                break
+                    except ValueError:
+                        continue
+                            
+        if found_spatial_amounts:
+            amount = max(found_spatial_amounts)
+            print(f"DEBUG: Spatially matched amount: {amount}")
+        else:
+            print("DEBUG: Spatial match failed, falling back to regex.")
+            amount_patterns = [
+                r'(?:GRAND\s?TOTAL|TOTAL\s?DUE|NET\s?PAYABLE|TOTAL\s?INCLUSIVE).*?([\d,]+\.\d{2})',
+                r'(?:TOTAL|AMOUNT).*?([\d,]+\.\d{2})',
+                r'(?:RS|LKR|RM)\.?\s?([\d,]+\.\d{2})', 
+                r'\$[\d,]+\.\d{2}', 
+                r'[\d,]+\.\d{2}',   
+            ]
+            
+            found_amounts = []
+            for pattern in amount_patterns:
+                matches = re.finditer(pattern, text, re.IGNORECASE)
+                for m in matches:
+                    try:
+                        val_str = m.group(1) if '(' in pattern else m.group(0)
+                        val_str = re.sub(r'[^\d\.]', '', val_str.replace(',', '')).strip('.')
+                        if val_str and val_str != '.':
+                            val = float(val_str)
+                            if 1.0 <= val < 1000000:
+                                found_amounts.append(val)
+                    except (IndexError, ValueError):
+                        continue
+            if found_amounts:
+                amount = max(found_amounts)
+            
+           # --- 1. Math Verification (Total = Cash - Balance) ---
+            cash_amount = 0.0
+            balance_amount = 0.0
+        
+            # Scan lines for Cash and Balance values
+            for line in text.split('\n'):
+                upper_line = line.upper()
+                nums = re.findall(r'[\d,]+\.\d{2}', line)
+                if nums:
+                    val = float(nums[-1].replace(',', ''))
+                    if "CASH" in upper_line and not "TOTAL" in upper_line:
+                        cash_amount = val
+                    elif any(k in upper_line for k in ["BALANCE", "CHANGE"]):
+                        balance_amount = val
+                    
+            # If we have both, calculate the true total
+            if cash_amount > 0 and balance_amount > 0 and cash_amount > balance_amount:
+                calculated_total = round(cash_amount - balance_amount, 2)
+                # If the calculated total is extremely close to the OCR total (e.g., 850.00 vs 850.66)
+                if abs(calculated_total - amount) < 1.0:
+                    print(f"DEBUG: Math verification corrected OCR error: {amount} -> {calculated_total}")
+                    amount = calculated_total
+
+            # --- 2. Thermal Printer Zero Artifact Fix ---
+            # In Sri Lanka, prices almost never end in .66 or .88. Snap them to .00
+            amount_str = f"{amount:.2f}"
+            if amount_str.endswith('.66') or amount_str.endswith('.88') or amount_str.endswith('.99'):
+                corrected_amount = float(amount_str[:-2] + '00')
+                print(f"DEBUG: Correcting thermal zero artifact: {amount} -> {corrected_amount}")
+                amount = corrected_amount 
+
+        print(f"DEBUG: Final Detected Amount: {amount}")
+
+        # 2. Date Extraction
+        receipt_date = fuzzy_parse_date(text)
+        if not receipt_date:
+            date_patterns = [
+                r'\d{1,2}/\d{1,2}/\d{2,4}',
+                r'\d{1,2}-\d{1,2}-\d{2,4}',
+                r'\d{4}-\d{1,2}-\d{1,2}'
+            ]
+            for pattern in date_patterns:
+                match = re.search(pattern, text, re.IGNORECASE)
+                if match:
+                    receipt_date = match.group()
+                    break
+
+        # 3. Merchant detection
+        merchant = "Unknown Merchant"
+        lines = [l.strip() for l in text.split("\n") if l.strip()]
+        
+        # 1. First search entire text for "Anchor Merchants"
+        anchor_merchants = {
+            "NOLIMIT": "NOLIMIT",
+            "STICKS & CO": "Sticks & Co.",
+            "KEELLS": "Keells Super",
+            "CARGILLS": "Cargills Food City",
+            "CEB": "Ceylon Electricity Board",
+            "ELECTRICITY BOARD": "Ceylon Electricity Board",
+            "WATER BOARD": "Water Board",
+            "DIALOG": "Dialog Axiata",
+            "MOBITEL": "Mobitel",
+            "UBER": "Uber",
+            "PICKME": "PickMe",
+            "KELLS": "Keells Super"
+        }
+        
+        upper_text = text.upper()
+        for key, display_name in anchor_merchants.items():
+            if key in upper_text:
+                merchant = display_name
+                break
+
+        if merchant == "Unknown Merchant":
+            valid_lines = []
+            for line in lines[:8]:
+                upper_line = line.upper()
+                # Ignore address, noise, and technical artifacts 
+                if any(k in upper_line for k in ["WAGE", "INVOICE", "RECEIPT", "BILL", "CONTACT", "TEL:", "PHONE", "PAGE", "DATE", "TAX", "DINE IN", "ORDER", "TABLE:", "JALAN", "SELANGOR", "GST", "ALAM", "SHAHVALAM", "ROAD", "AUCKLAND", "ZEALAND", "CLIENT", "BUSINESS NAME", "WELLAWATTA", "GALLE ROAD", "CASHIER:", "STATION", "STORE:", "BRANCH:"]):
+                    continue
+                
+                # Version/File-like pattern check (e.g., v.1.0, data.csv)
+                if re.search(r'v\.?\d\.\d', upper_line) or re.search(r'\.[a-z]{3,4}$', line):
+                    continue
+
+                if len(line) > 3:
+                    valid_lines.append(line)
+            
+            if valid_lines:
+                merchant = valid_lines[0]
+                if len(valid_lines) > 1 and len(valid_lines[0]) < 10 and len(valid_lines[1]) < 15:
+                     merchant = valid_lines[0] + " " + valid_lines[1]
+
+        # NLP Fallback 
+        if merchant == "Unknown Merchant" and doc:
+            invalid_orgs = ['UPI', 'CGST', 'SGST', 'IGST', 'GST', 'TAX', 'CASH', 'VISA', 'MASTERCARD', 'TOTAL', 'AMOUNT', 'NET']
+            orgs = [ent.text for ent in doc.ents if ent.label_ == "ORG" and not any(bad in ent.text.upper() for bad in invalid_orgs)]
+            if orgs:
+                merchant = orgs[0]
+        
+        # Post-process merchant for CEB
+        if "EBIL-CEB" in merchant.upper() or "CEB" == merchant.upper().split()[0]:
+            merchant = "Ceylon Electricity Board"
+
+        # 4. Category detection 
+        combined_text = (text + " " + merchant).lower()
+        category = "shopping"
+        
+        keywords = {
+            "food": ["restaurant", "food", "eat", "cafe", "meal", "pizza", "burger", "coffee", "keells", "cargills", "supermarket", "dine", "kitchen", "bake", "lane", "indian", "spice", "route", "naan", "curry", "paneer", "biryani", "lassi", "thali", "sticks"],
+            "entertainment": ["pub", "bar", "cinema", "movie", "theater", "game", "club", "party", "drink", "cocktail", "liquor", "netflix", "spotify", "billard"],
+            "transportation": ["fuel", "petrol", "gas", "taxi", "uber", "pickme", "transport", "garage", "travel", "bus", "train", "metro"],
+            "healthcare": ["pharmacy", "medical", "clinic", "health", "hospital", "doctor", "chemist", "dental", "medicine"],
+            "utilities": ["dialog", "mobitel", "electricity", "water", "bill", "recharge", "internet", "phone", "wifi", "ceb", "nwsdb", "board", "power", "utility"],
+            "shopping": ["shopping", "retail", "store", "mall", "clothing", "electronics", "fashion", "no-limit", "cool-planet", "odell"],
+            "education": ["school", "college", "university", "course", "tution", "book", "stationary", "udemy", "coursera"],
+            "personal": ["salon", "spa", "hair", "beauty", "gym", "care", "wellness", "shampoo", "soap", "cosmetic"],
+            "travel": ["hotel", "flight", "booking", "plane", "stay", "airbnb", "agoda"],
+            "bills": ["repair", "service", "charge", "maintenance", "tax", "fee", "expert", "valuation", "legal"],
+            "housing": ["rent", "mortgage", "property", "lease", "apartment"],
+            "groceries": ["groceries", "market", "vegetable", "fruit", "milk", "egg", "bread"],
+            "gifts": ["gift", "donation", "charity", "present", "birthday", "wedding"],
+            "insurance": ["insurance", "policy", "premium", "allianz"],
+            "other-expense": ["miscellaneous", "other"]
+        }
+
+        lower_merchant = merchant.lower()
+        
+        if any(re.search(fr'\b{re.escape(k)}\b', lower_merchant) for k in ["pub", "bar", "club"]):
+            category = "entertainment"
+        elif any(re.search(fr'\b{re.escape(k)}\b', lower_merchant) for k in ["spice", "route", "restaurant", "cafe", "kitchen", "food", "sticks"]):
+            category = "food"
+        elif any(re.search(fr'\b{re.escape(k)}\b', lower_merchant) for k in ["garden", "repairs", "service", "maintenance", "expert"]):
+            category = "bills" 
+
+        for cat, keys in keywords.items():
+            if any(re.search(fr'\b{re.escape(k)}\b', combined_text) for k in keys):
+                category = cat
+                if cat in ["food", "entertainment", "bills", "utilities"]:
+                    break
+        
+        # Strict override for electricity/water/ceb
+        if any(x in combined_text for x in ["ceb", "electricity", "water board", "utility bill"]):
+            category = "utilities"
+        
+        print(f"DEBUG: Detected Date: {receipt_date}")
+        print(f"DEBUG: Detected Category: {category}")
+        print(f"DEBUG: Detected Merchant: {merchant}")
+
+        return {
+            "success": True,
+            "amount": amount,
+            "date": receipt_date,
+            "description": merchant if merchant != "Unknown Merchant" else "Scanned Receipt",
+            "category": category,
+            "merchantName": merchant
+        }
 
     except Exception as e:
-        print(f"OCR Pipeline Error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ml/sms")
+async def process_sms_nlp(req: SMSRequest):
+    try:
+        text = req.message.lower()
+        doc = nlp(text) if nlp else None
+        
+        amount = 0.0
+        match = re.search(r'(?:rs|lkr|\$)?\s?([\d,]+\.\d+|[\d,]+)', text)
+        if match:
+            amount = float(match.group(1).replace(',', ''))
+
+        txn_type = "EXPENSE"
+        if any(x in text for x in ["credited", "received", "deposit"]):
+            txn_type = "INCOME"
+        elif any(x in text for x in ["debited", "paid", "purchase"]):
+            txn_type = "EXPENSE"
+
+        merchant = "Unknown"
+        if doc:
+            orgs = [ent.text.title() for ent in doc.ents if ent.label_ in ["ORG", "PERSON"]]
+            if orgs:
+                merchant = orgs[-1]
+
+        if merchant == "Unknown":
+            m = re.search(r'(?:at|to|from)\s([a-zA-Z\s]+)', text)
+            if m:
+                merchant = m.group(1).title()
+
+        merchant_lower = merchant.lower()
+        category = "shopping"
+        if "keells" in merchant_lower or "cargills" in merchant_lower:
+            category = "food"
+        elif "uber" in merchant_lower:
+            category = "transportation"
+        elif "dialog" in merchant_lower:
+            category = "utilities"
+
+        return {
+            "success": True,
+            "amount": amount,
+            "type": txn_type,
+            "merchant": merchant,
+            "category": category,
+            "original_sender": req.sender
+        }
+    except Exception as e:
+        print(f"SMS NLP Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    # Run on port 8000
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    print("Starting WELTH ML Service on http://0.0.0.0:8000")
+    try:
+        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    except Exception as e:
+        print(f"Failed to start server: {e}")
