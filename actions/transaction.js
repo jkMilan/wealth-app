@@ -133,11 +133,12 @@ export async function scanReceipt(file) {
             description: data.description || "Scanned Receipt",
             merchantName: data.merchantName || "Unknown Merchant",
             category: data.category || "other-expense",
+            type: data.type || "EXPENSE",
         };
 
     } catch (error) {
-        console.error("OCR API Error:", error);
-        throw new Error("Failed to scan receipt via ML service.");
+        console.error("Error scanning receipt:", error);
+        throw new Error("Failed to scan receipt with AI. Please try again or enter manually.");
     }
 }
 
