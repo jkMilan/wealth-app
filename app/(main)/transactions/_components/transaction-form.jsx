@@ -87,7 +87,6 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
 
     const handleScanComplete = (scannedData) => {
         if (scannedData) {
-            if (scannedData.type) setValue("type", scannedData.type);
             if (scannedData.amount !== undefined) setValue("amount", scannedData.amount.toString());
             if (scannedData.date) setValue("date", new Date(scannedData.date));
             if (scannedData.description) setValue("description", scannedData.description);
@@ -119,7 +118,6 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
             <Select
                 onValueChange={(value) => setValue("type", value)}
                 defaultValue={type}
-                value={type}
             >
                 <SelectTrigger>
                     <SelectValue placeholder="Select Type" />
