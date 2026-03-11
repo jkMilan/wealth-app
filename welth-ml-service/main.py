@@ -57,17 +57,13 @@ def fuzzy_parse_date(text):
                 day = groups[0] if groups[0].isdigit() else (groups[1] if len(groups) > 1 and groups[1].isdigit() else "01")
                 month_str = next((g for g in groups if g and not g.isdigit()), "")
                 year = str(found_year) if found_year > 0 else str(current_year)
-                
-                # Check if date is reasonable (not more than 7 days into future from today)
-                # This helps catch misreads of '01' as '03' or similar.
                 for key, val_name in MONTH_MAP.items():
                     if key in month_str:
                         try:
                             month_idx = list(calendar.month_name).index(val_name)
                             dt_check = datetime(int(year), month_idx, int(day))
-                            # Receipt sanity: favor past dates
                             if dt_check > datetime.now() and int(year) == current_year:
-                                if month_idx == 3: # 03 misread as 01 is common
+                                if month_idx == 3: 
                                     return f"{year}-01-{int(day):02d}"
                             return f"{year}-{month_idx:02d}-{int(day):02d}"
                         except (ValueError, IndexError):
@@ -88,12 +84,8 @@ def fuzzy_parse_date(text):
                     if res_date:
                         try:
                             dt_obj = datetime.strptime(res_date, "%Y-%m-%d")
-                            # If date is in the future within the same year, 
-                            # it's likely an OCR error (e.g. 03 instead of 01)
                             if dt_obj > datetime.now() and dt_obj.year == current_year:
                                 if dt_obj.month == 3:
-                                    # Heuristic fix for "03" misread as "01"
-                                    # Very common in receipts where 1 looks like 3 or 8
                                     new_res = res_date.replace("-03-", "-01-")
                                     return new_res
                             return res_date
@@ -102,7 +94,6 @@ def fuzzy_parse_date(text):
 
     for key, val_name in MONTH_MAP.items():
         if key in text_lower:
-            # Look for month and a 4 digit year nearby
             match = re.search(fr"{key}.*?(\d{{4}})", text_lower)
             if not match:
                 match = re.search(fr"(\d{{4}}).*?{key}", text_lower)
@@ -122,19 +113,16 @@ def fuzzy_parse_date(text):
                         day_val = int(day_match.group(1)) if day_match else 1
                         return f"{y}-{month_idx:02d}-{day_val:02d}"
             
-    # 3. Look for explicit labels like "Statement Date" or "Bill Date"
+    
     date_labels = [r"statement\s*date", r"bill\s*date", r"date\s*of\s*issue", r"invoice\s*date"]
     for label in date_labels:
         label_match = re.search(label, text_lower)
         if label_match:
-            # Look for a date in the same line or next line
             start_pos = label_match.end()
             context = text_lower[start_pos:start_pos + 100]
             for pattern in date_patterns:
                 m = re.search(pattern, context)
                 if m:
-                    # Found a date near a label! Process it.
-                    # (Re-use existing logic or just call recursively with context)
                     res = fuzzy_parse_date(context)
                     if res: return res
 
@@ -286,14 +274,29 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         # Scoring function to pick the most logical receipt text
         def score_ocr_text(t):
             if not t: return 0
-            score = sum(c.isalnum() for c in t) # Reward real letters/numbers
+            score = sum(c.isalnum() for c in t) 
             upper_t = t.upper()
-            keywords = ['TOTAL', 'GRAND', 'CASH', 'TAX', 'INVOICE', 'RECEIPT', 'DATE', 'AMOUNT', 'QTY', 'ITEM']
+            
+            # 1. Heavily reward actual banking and receipt keywords
+            keywords = ['TOTAL', 'GRAND', 'CASH', 'TAX', 'INVOICE', 'RECEIPT', 'DATE', 'AMOUNT', 'QTY', 'ITEM'
+            'DEPOSIT', 'BANK', 'LKR', 'RS', 'BALANCE', 'ACCOUNT', 'CARD', 'WITHDRAWAL', 'CEYLON', 'SAMPATH'
+            'COMMERCIAL', 'COMMERCIAL BANK', 'BANK OF CEYLON', 'BOC', 'SAMPATH BANK', 'DFCC', 'DFCC BANK'
+            ]
+            found_keywords = 0
             for kw in keywords:
                 if kw in upper_t:
-                    score += 50
-            if re.search(r'\d+\.\d{2}', t): # Reward finding proper decimals
-                score += 100
+                    score += 200
+                    found_keywords += 1
+            
+            # 2. Reward finding proper decimal amounts (using our updated regex)
+            if re.search(r'[\d,\s]+\.\s?\d{2}', t): 
+                score += 300
+            
+            # 3. Only add character count if we actually found receipt keywords
+            # This prevents giant blocks of hallucinated gibberish from winning
+            if found_keywords > 0:
+                score += sum(c.isalnum() for c in t) * 0.1
+            
             return score
 
         score_otsu = score_ocr_text(text_otsu)
@@ -330,7 +333,7 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         
         for i in range(len(ocr_data['text'])):
             word = str(ocr_data['text'][i])
-            if re.match(r'^[^\d]*[\d,]+\.\d{2}[^\d]*$', word):
+            if re.match(r'^[^\d]*[\d,\s]+\.\s?\d{2}[^\d]*$', word):
                 clean_val_str = re.sub(r'[^\d\.]', '', word).strip('.')
                 if clean_val_str:
                     try:
@@ -348,11 +351,12 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         else:
             print("DEBUG: Spatial match failed, falling back to regex.")
             amount_patterns = [
-                r'(?:GRAND\s?TOTAL|TOTAL\s?DUE|NET\s?PAYABLE|TOTAL\s?INCLUSIVE).*?([\d,]+\.\d{2})',
-                r'(?:TOTAL|AMOUNT).*?([\d,]+\.\d{2})',
-                r'(?:RS|LKR|RM)\.?\s?([\d,]+\.\d{2})', 
-                r'\$[\d,]+\.\d{2}', 
-                r'[\d,]+\.\d{2}',   
+                r'(?:GRAND\s?TOTAL|TOTAL\s?DUE|NET\s?PAYABLE|TOTAL\s?INCLUSIVE).*?([\d,\s]+\.\s?\d{2})',
+                r'(?:TOTAL|AMOUNT).*?([\d,\s]+\.\s?\d{2})',
+                r'(?:RS|LKR|RM)\.?\s?([\d,\s]+\.\s?\d{2})',
+                r'\$[\d,\s]+\.\s?\d{2}',
+                r'[\d,\s]+\.\s?\d{2}',
+                r'[\d,\s:]+\.\s?\d{2}',
             ]
             
             found_amounts = []
@@ -361,7 +365,7 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
                 for m in matches:
                     try:
                         val_str = m.group(1) if '(' in pattern else m.group(0)
-                        val_str = re.sub(r'[^\d\.]', '', val_str.replace(',', '')).strip('.')
+                        val_str = re.sub(r'[^\d\.]', '', val_str.replace(',', '').replace(':', '')).strip('.')
                         if val_str and val_str != '.':
                             val = float(val_str)
                             if 1.0 <= val < 1000000:
@@ -417,6 +421,9 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
                 if match:
                     receipt_date = match.group()
                     break
+        
+        if not receipt_date:
+            receipt_date = datetime.now().strftime('%Y-%m-%d')
 
         # 3. Merchant detection
         merchant = "Unknown Merchant"
@@ -424,6 +431,26 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         
         # 1. First search entire text for "Anchor Merchants"
         anchor_merchants = {
+            "COMMERCIAL BANK": "Commercial Bank",
+            "CONMERCIAL": "Commercial Bank", 
+            "SAMPATH": "Sampath Bank",
+            "HATTON": "Hatton National Bank",
+            "HNB": "Hatton National Bank",
+            "SEYLAN": "Seylan Bank",
+            "PEOPLE'S BANK": "People's Bank",
+            "PEOPLES BANK": "People's Bank",
+            "NDB": "National Development Bank",
+            "NATIONAL DEVELOPMENT": "National Development Bank",
+            "NTB": "Nations Trust Bank",
+            "NATIONS TRUST": "Nations Trust Bank",
+            "DFCC": "DFCC Bank",
+            "PAN ASIA": "Pan Asia Bank",
+            "UNION BANK": "Union Bank",
+            "AMANA": "Amana Bank",
+            "BANK OF CEYLON": "Bank of Ceylon",
+            "BOC": "Bank of Ceylon",
+            "OF CEYLON": "Bank of Ceylon",
+            "OF GEVEON": "Bank of Ceylon",
             "NOLIMIT": "NOLIMIT",
             "STICKS & CO": "Sticks & Co.",
             "KEELLS": "Keells Super",
@@ -480,21 +507,23 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         category = "shopping"
         
         keywords = {
-            "food": ["restaurant", "food", "eat", "cafe", "meal", "pizza", "burger", "coffee", "keells", "cargills", "supermarket", "dine", "kitchen", "bake", "lane", "indian", "spice", "route", "naan", "curry", "paneer", "biryani", "lassi", "thali", "sticks"],
-            "entertainment": ["pub", "bar", "cinema", "movie", "theater", "game", "club", "party", "drink", "cocktail", "liquor", "netflix", "spotify", "billard"],
-            "transportation": ["fuel", "petrol", "gas", "taxi", "uber", "pickme", "transport", "garage", "travel", "bus", "train", "metro"],
-            "healthcare": ["pharmacy", "medical", "clinic", "health", "hospital", "doctor", "chemist", "dental", "medicine"],
-            "utilities": ["dialog", "mobitel", "electricity", "water", "bill", "recharge", "internet", "phone", "wifi", "ceb", "nwsdb", "board", "power", "utility"],
-            "shopping": ["shopping", "retail", "store", "mall", "clothing", "electronics", "fashion", "no-limit", "cool-planet", "odell"],
-            "education": ["school", "college", "university", "course", "tution", "book", "stationary", "udemy", "coursera"],
-            "personal": ["salon", "spa", "hair", "beauty", "gym", "care", "wellness", "shampoo", "soap", "cosmetic"],
-            "travel": ["hotel", "flight", "booking", "plane", "stay", "airbnb", "agoda"],
-            "bills": ["repair", "service", "charge", "maintenance", "tax", "fee", "expert", "valuation", "legal"],
-            "housing": ["rent", "mortgage", "property", "lease", "apartment"],
-            "groceries": ["groceries", "market", "vegetable", "fruit", "milk", "egg", "bread"],
-            "gifts": ["gift", "donation", "charity", "present", "birthday", "wedding"],
-            "insurance": ["insurance", "policy", "premium", "allianz"],
-            "other-expense": ["miscellaneous", "other"]
+            "Deposit": ["deposit", "credited", "saving", "cash deposit"],
+            "Withdrawal": ["withdrawal", "atm draw", "cash withdrawal"],
+            "Food": ["restaurant", "food", "eat", "cafe", "meal", "pizza", "burger", "coffee", "keells", "cargills", "supermarket", "dine", "kitchen", "bake", "lane", "indian", "spice", "route", "naan", "curry", "paneer", "biryani", "lassi", "thali", "sticks"],
+            "Entertainment": ["pub", "bar", "cinema", "movie", "theater", "game", "club", "party", "drink", "cocktail", "liquor", "netflix", "spotify", "billard"],
+            "Transportation": ["fuel", "petrol", "gas", "taxi", "uber", "pickme", "transport", "garage", "travel", "bus", "train", "metro"],
+            "Healthcare": ["pharmacy", "medical", "clinic", "health", "hospital", "doctor", "chemist", "dental", "medicine"],
+            "Utilities": ["dialog", "mobitel", "electricity", "water", "bill", "recharge", "internet", "phone", "wifi", "ceb", "nwsdb", "board", "power", "utility"],
+            "Shopping": ["shopping", "retail", "store", "mall", "clothing", "electronics", "fashion", "no-limit", "cool-planet", "odell"],
+            "Education": ["school", "college", "university", "course", "tution", "book", "stationary", "udemy", "coursera"],
+            "Personal Care": ["salon", "spa", "hair", "beauty", "gym", "care", "wellness", "shampoo", "soap", "cosmetic", "personal"],
+            "Travel": ["hotel", "flight", "booking", "plane", "stay", "airbnb", "agoda"],
+            "Bills & Fees": ["repair", "service", "charge", "maintenance", "tax", "fee", "expert", "valuation", "legal"],
+            "Housing": ["rent", "mortgage", "property", "lease", "apartment"],
+            "Groceries": ["groceries", "market", "vegetable", "fruit", "milk", "egg", "bread"],
+            "Gifts & Donations": ["gift", "donation", "charity", "present", "birthday", "wedding"],
+            "Insurance": ["insurance", "policy", "premium", "allianz"],
+            "Other Expenses": ["miscellaneous", "other"]
         }
 
         lower_merchant = merchant.lower()
@@ -515,6 +544,12 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         # Strict override for electricity/water/ceb
         if any(x in combined_text for x in ["ceb", "electricity", "water board", "utility bill"]):
             category = "utilities"
+            
+        # 5. Type detection
+        txn_type = "EXPENSE"
+        upper_text = text.upper()
+        if any(x in upper_text for x in ["REFUND", "CREDIT NOTE", "DEPOSIT", "REVERSAL", "RECEIVED", "CREDITED"]):
+            txn_type = "INCOME"
         
         print(f"DEBUG: Detected Date: {receipt_date}")
         print(f"DEBUG: Detected Category: {category}")
@@ -526,7 +561,8 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
             "date": receipt_date,
             "description": merchant if merchant != "Unknown Merchant" else "Scanned Receipt",
             "category": category,
-            "merchantName": merchant
+            "merchantName": merchant,
+            "type": txn_type
         }
 
     except Exception as e:

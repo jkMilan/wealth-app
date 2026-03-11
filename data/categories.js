@@ -36,6 +36,13 @@ export const defaultCategories = [
     icon: "Home",
   },
   {
+    id: "deposit",
+    name: "Deposit",
+    type: "INCOME",
+    color: "#22c55e", // green-500
+    icon: "Plus",
+  },
+  {
     id: "other-income",
     name: "Other Income",
     type: "INCOME",
@@ -158,6 +165,13 @@ export const defaultCategories = [
     type: "EXPENSE",
     color: "#94a3b8", // slate-400
     icon: "MoreHorizontal",
+  },
+  {
+    id: "withdrawal",
+    name: "Withdrawal",
+    type: "EXPENSE",
+    color: "#f59e0b", // amber-500
+    icon: "Minus",
   },
 ];
 
