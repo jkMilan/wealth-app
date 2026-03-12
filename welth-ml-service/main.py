@@ -538,6 +538,105 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
 async def process_sms_nlp(req: SMSRequest):
     try:
         text = req.message.lower()
+        sender = req.sender.upper() if req.sender else ""
+        
+        # --- 1. Amount Extraction ---
+        amount = 0.0
+        # Look for LKR, Rs, Rs., LKR. followed by amount
+        match = re.search(r'(?:rs\.?|lkr\.?)\s?([\d,]+\.\d{2}|[\d,]+)', text)
+        if not match:
+            # Fallback to finding the first logical decimal amount
+            match = re.search(r'([\d,]+\.\d{2})', text)
+            
+        if match:
+            amount = float(match.group(1).replace(',', ''))
+
+        # --- 2. Transaction Type ---
+        txn_type = "EXPENSE"
+        if any(x in text for x in ["credited", "received", "deposit", "inward"]):
+            txn_type = "INCOME"
+
+        # --- 3. Merchant / Bank Sender Identification ---
+        merchant = "Unknown Merchant"
+        
+        # Check if the SMS Sender is a known Sri Lankan Bank
+        bank_senders = {
+            "COMBANK": "Commercial Bank",
+            "SAMPATH": "Sampath Bank",
+            "BOC": "Bank of Ceylon",
+            "HNB": "Hatton National Bank",
+            "SEYLAN": "Seylan Bank",
+            "NDB": "National Development Bank",
+            "NTB": "Nations Trust Bank",
+            "PEOPLES": "People's Bank"
+        }
+        
+        bank_name = None
+        for key, val in bank_senders.items():
+            if key in sender or key.lower() in text:
+                bank_name = val
+                break
+                
+        # Try to find specific merchant for POS/Card payments (e.g., "paid at KEELLS")
+        m = re.search(r'(?:at|to)\s+([a-zA-Z0-9\s&]+?)(?:on|for|\.|$)', text)
+        if m:
+            extracted = m.group(1).strip().title()
+            if len(extracted) > 2 and extracted.lower() not in ["your", "the"]:
+                merchant = extracted
+        
+        # If no merchant found, but it's a bank notification, set merchant to the Bank name
+        if merchant == "Unknown Merchant" and bank_name:
+            merchant = bank_name
+
+        # --- 4. Category Sync (Perfectly matches Next.js UI) ---
+        category = "Other Expenses" 
+        combined_text = (text + " " + merchant).lower()
+        
+        keywords = {
+            "Deposit": ["deposit", "credited", "saving", "cash deposit", "received"],
+            "Withdrawal": ["withdrawal", "atm draw", "cash withdrawal", "withdrawn"],
+            "Food": ["restaurant", "food", "eat", "cafe", "meal", "pizza", "burger", "coffee", "keells", "cargills", "supermarket", "dine", "kitchen", "bake", "lane", "indian", "spice", "route", "naan", "curry", "paneer", "biryani", "lassi", "thali", "sticks"],
+            "Entertainment": ["pub", "bar", "cinema", "movie", "theater", "game", "club", "party", "drink", "cocktail", "liquor", "netflix", "spotify", "billard"],
+            "Transportation": ["fuel", "petrol", "gas", "taxi", "uber", "pickme", "transport", "garage", "travel", "bus", "train", "metro"],
+            "Healthcare": ["pharmacy", "medical", "clinic", "health", "hospital", "doctor", "chemist", "dental", "medicine"],
+            "Utilities": ["dialog", "mobitel", "electricity", "water", "bill", "recharge", "internet", "phone", "wifi", "ceb", "nwsdb", "board", "power", "utility"],
+            "Shopping": ["shopping", "retail", "store", "mall", "clothing", "electronics", "fashion", "no-limit", "cool-planet", "odell"],
+            "Education": ["school", "college", "university", "course", "tution", "book", "stationary", "udemy", "coursera"],
+            "Personal Care": ["salon", "spa", "hair", "beauty", "gym", "care", "wellness", "shampoo", "soap", "cosmetic", "personal"],
+            "Travel": ["hotel", "flight", "booking", "plane", "stay", "airbnb", "agoda"],
+            "Bills & Fees": ["repair", "service", "charge", "maintenance", "tax", "fee", "expert", "valuation", "legal", "bank charges", "annual fee"],
+            "Housing": ["rent", "mortgage", "property", "lease", "apartment"],
+            "Groceries": ["groceries", "market", "vegetable", "fruit", "milk", "egg", "bread"],
+            "Gifts & Donations": ["gift", "donation", "charity", "present", "birthday", "wedding"],
+            "Insurance": ["insurance", "policy", "premium", "allianz"]
+        }
+
+        for cat, keys in keywords.items():
+            if any(re.search(fr'\b{re.escape(k)}\b', combined_text) for k in keys):
+                category = cat
+                break 
+
+        # Strict Bank Overrides
+        if bank_name and category == "Other Expenses":
+            if txn_type == "INCOME":
+                category = "Deposit"
+            elif "atm" in combined_text or "withdrawn" in combined_text:
+                category = "Withdrawal"
+
+        return {
+            "success": True,
+            "amount": amount,
+            "type": txn_type,
+            "merchant": merchant,
+            "category": category,
+            "original_sender": req.sender
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    try:
+        text = req.message.lower()
         doc = nlp(text) if nlp else None
         
         amount = 0.0
