@@ -24,7 +24,7 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
     const router = useRouter();
     const [mounted, setMounted] = useState(false);  
     const searchParams = useSearchParams();
-    const editId = searchParams.get("edit");
+    const editId = searchParams. get("edit");
 
     useEffect(() => {
         setMounted(true);
@@ -70,7 +70,7 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
         };
 
         if (editMode) {
-            transactionFn(initialData.id, fromData);
+            transactionFn(editId, fromData);
         } else {
             transactionFn(fromData);
         }
