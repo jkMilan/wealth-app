@@ -30,7 +30,6 @@ const RECURRING_INTERVALS = {
 
 const TransactionTable = ({ transactions }) => {
     const router = useRouter();
-    const [isMounted, setIsMounted] = useState(false);
     const [selectedIds, setSelectedIds] = useState([]);
     const [sortConfig, setSortConfig] = useState({
         field: "date",
@@ -41,10 +40,6 @@ const TransactionTable = ({ transactions }) => {
     const [typeFilter, setTypeFilter] = useState("");
     const [recurringFilter, setRecurringFilter] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
 
     const {
         loading: deleteLoading,
@@ -165,9 +160,6 @@ const TransactionTable = ({ transactions }) => {
         setCurrentPage(newPage);
         setSelectedIds([]);
     };
-    
-
-    if (!isMounted) return null;
 
     return (
         <div className="space-y-4">
