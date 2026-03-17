@@ -7,7 +7,8 @@
     "email": "email dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@arcjet/inspect": "^1.1.0",
