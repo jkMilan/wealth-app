@@ -130,6 +130,9 @@ def fuzzy_parse_date(text):
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 app = FastAPI(title="WELTH ML Service")
+@app.get("/")
+async def root():
+    return {"message": "WELTH ML Service is Online and Running!"}
 
 try:
     nlp = spacy.load("en_core_web_sm")
@@ -507,11 +510,11 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         category = "shopping"
         
         keywords = {
-            "Deposit": ["deposit", "credited", "saving", "cash deposit"],
-            "Withdrawal": ["withdrawal", "atm draw", "cash withdrawal"],
-            "Food": ["restaurant", "food", "eat", "cafe", "meal", "pizza", "burger", "coffee", "keells", "cargills", "supermarket", "dine", "kitchen", "bake", "lane", "indian", "spice", "route", "naan", "curry", "paneer", "biryani", "lassi", "thali", "sticks"],
-            "Entertainment": ["pub", "bar", "cinema", "movie", "theater", "game", "club", "party", "drink", "cocktail", "liquor", "netflix", "spotify", "billard"],
-            "Transportation": ["fuel", "petrol", "gas", "taxi", "uber", "pickme", "transport", "garage", "travel", "bus", "train", "metro"],
+            "deposit": ["deposit", "credited", "saving", "cash deposit"],
+            "withdrawal": ["withdrawal", "atm draw", "cash withdrawal"],
+            "food": ["restaurant", "food", "eat", "cafe", "meal", "pizza", "burger", "coffee", "keells", "cargills", "supermarket", "dine", "kitchen", "bake", "lane", "indian", "spice", "route", "naan", "curry", "paneer", "biryani", "lassi", "thali", "sticks"],
+            "entertainment": ["pub", "bar", "cinema", "movie", "theater", "game", "club", "party", "drink", "cocktail", "liquor", "netflix", "spotify", "billard"],
+            "transportation": ["fuel", "petrol", "gas", "taxi", "uber", "pickme", "transport", "garage", "travel", "bus", "train", "metro"],
             "Healthcare": ["pharmacy", "medical", "clinic", "health", "hospital", "doctor", "chemist", "dental", "medicine"],
             "Utilities": ["dialog", "mobitel", "electricity", "water", "bill", "recharge", "internet", "phone", "wifi", "ceb", "nwsdb", "board", "power", "utility"],
             "Shopping": ["shopping", "retail", "store", "mall", "clothing", "electronics", "fashion", "no-limit", "cool-planet", "odell"],
@@ -625,7 +628,7 @@ async def process_sms_nlp(req: SMSRequest):
             merchant = bank_name
 
         # --- 4. Category Sync (Perfectly matches Next.js UI) ---
-        category = "Other Expenses" 
+        category = "other-expenses" 
         combined_text = (text + " " + merchant).lower()
         
         keywords = {

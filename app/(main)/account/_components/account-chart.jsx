@@ -107,8 +107,8 @@ const AccountChart = ({ transactions }) => {
                         <p className="text-muted-foreground">Total Balance</p>
                         <p
                             className={`text-lg font-bold ${totals.income - totals.expense > 0
-                                    ? "text-green-500"
-                                    : "text-red-500"
+                                ? "text-green-500"
+                                : "text-red-500"
                                 }`}
                         >
                             LKR {(totals.income - totals.expense).toFixed(2)}
@@ -136,8 +136,8 @@ const AccountChart = ({ transactions }) => {
                             />
                             <Tooltip formatter={(value) => [`LKR ${value}`, undefined]} />
                             <Legend />
-                            <Bar dataKey="income" name="Income" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="expense" name="Expense" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="income" name="Income" fill="#ab290cff" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="expense" name="Expense" fill="#08b208ff" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

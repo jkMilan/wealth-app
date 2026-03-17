@@ -32,9 +32,9 @@ async function DashboardPage() {
       )}
 
       {/* Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <MlInsightsCard insights={mlInsights} />
-      </div>
+      </div> */}
 
       {/* Account Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -12,17 +12,19 @@ import { Input } from '@/components/ui/input';
 import CreateAccountDrawer from '@/components/create-account-drawer';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from "date-fns";
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, Loader2 } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Switch } from '@/components/ui/switch';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import ReceiptScanner from './receipt-scanner';
 import { toast } from "sonner";
 
 
 const AddTransactionForm = ({ accounts, categories, editMode = false, initialData = null }) => {
     const router = useRouter();
-    const [mounted, setMounted] = useState(false);
+    const [mounted, setMounted] = useState(false);  
+    const searchParams = useSearchParams();
+    const editId = searchParams.get("edit");
 
     useEffect(() => {
         setMounted(true);
@@ -76,10 +78,11 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
 
     useEffect(() => {
         if (transactionResult?.success && !transactionLoading) {
+            toast.success(editMode ? "Transaction updated successfully" : "Transaction created successfully");
             reset();
             router.push(`/account/${transactionResult.data.accountId}`);
         }
-    }, [transactionResult, transactionLoading]);
+    }, [transactionResult, transactionLoading, editMode]);
 
     const filterdCategories = categories.filter(
         (category) => category.type === type
@@ -261,10 +264,10 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
                         <SelectValue placeholder="Select Interval" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="yearly">Yearly</SelectItem>
+                        <SelectItem value="DAILY">Daily</SelectItem>
+                        <SelectItem value="WEEKLY">Weekly</SelectItem>
+                        <SelectItem value="MONTHLY">Monthly</SelectItem>
+                        <SelectItem value="YEARLY">Yearly</SelectItem>
                     </SelectContent>
                 </Select>
                 {errors.recurringInterval && (
@@ -285,7 +288,16 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
                 Cancel
             </Button>
             <Button type="submit" className="flex-1" disabled={transactionLoading}>
-                {editMode ? "Update Transaction" : "Create Transaction"}
+                {transactionLoading ? (
+                    <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {editMode ? "Updating..." : "Creating..."}
+                    </>
+                ) : editMode ? ( 
+                    "Update Transaction"
+                ) : ( 
+                    "Create Transaction"
+                )}
             </Button>
         </div>
     </form>

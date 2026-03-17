@@ -44,7 +44,6 @@ export async function createAccount(data) {
         const shouldBeDefault = existingAccounts.length === 0 ? true : data.isDefault;
 
         if (shouldBeDefault) {
-            // If the new account is set to default, unset the default flag for all other accounts
             await db.account.updateMany({
                 where: { userId: user.id, isDefault: true },
                 data: { isDefault: false },
@@ -116,7 +115,6 @@ export async function getAiInsights(userId, income, expenses, count) {
     
     const mlData = await res.json();
     return mlData; 
-    // Returns: { profile: "Saver", custom_advice: "..." }
   } catch (error) {
     console.error("ML Service offline", error);
     return null;

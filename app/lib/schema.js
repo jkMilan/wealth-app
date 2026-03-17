@@ -16,9 +16,7 @@ export const transactionSchema = z
         accountId: z.string().min(1, "Account is required"),
         category: z.string().min(1, "Category is required"),
         isRecurring: z.boolean().default(false),
-        recurringInterval: z
-            .enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"])
-            .optional(),
+        recurringInterval: z.enum(["DAILY", "WEEKLY", "MONTHLY", "YEARLY"]).optional(),
     })
     .superRefine((data, ctx) => {
         if (data.isRecurring && !data.recurringInterval) {
