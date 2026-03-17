@@ -100,23 +100,26 @@ export async function getUserAccounts() {
     return serializeAccount;
 }
 
-export async function getAiInsights(userId, income, expenses, count) {
-  try {
-    const res = await fetch('http://127.0.0.1:8000/api/ml/cluster', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: userId,
-        monthly_income: income,
-        monthly_expenses: expenses,
-        transaction_count: count
-      })
+export async function getDashboardData() {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const user = await db.user.findUnique({
+        where: {
+            clerkUserId: userId
+        },
     });
     
-    const mlData = await res.json();
-    return mlData; 
-  } catch (error) {
-    console.error("ML Service offline", error);
-    return null;
-  }
-}
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    // Get all user transactions
+    const transactions = await db.transaction.findMany({
+        where: { userId: user.id },
+        orderBy: { date: "desc" },
+    });
+
+    return transactions.map(serializeTransaction);
+}   
+    

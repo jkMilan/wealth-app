@@ -1,19 +1,41 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import arcjet, { shield, detectBot, createMiddleware } from '@arcjet/next';
 
-// Define the routes that REQUIRE a login
+
 const isProtectedRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/account(.*)",
   "/transaction(.*)",
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
-  // Use await auth() for Clerk v6+ compatibility
-  // auth.protect() is the "standard" way to handle redirects safely
+const aj = arcjet({
+  key: process.env.ARCJET_KEY,
+  rules: [
+    shield({
+      mode: 'LIVE',
+    }),
+    detectBot({
+      mode: 'LIVE',
+      allow: ["CATEGORY:SEARCH_ENGINE","GO_HTTP"],
+    }),
+  ],
+});
+
+const clerk = clerkMiddleware(async (auth, req) => {
+  const {userId} = await auth();
+
+  if (!userId && isProtectedRoute(req)) {
+    const {redirectToSignIn} = await auth();
+    
+    return redirectToSignIn();
+  }
+
   if (isProtectedRoute(req)) {
     await auth.protect(); 
   }
 });
+
+export default createMiddleware(aj, clerk);
 
 export const config = {
   matcher: [

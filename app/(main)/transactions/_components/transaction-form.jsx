@@ -22,9 +22,9 @@ import { toast } from "sonner";
 
 const AddTransactionForm = ({ accounts, categories, editMode = false, initialData = null }) => {
     const router = useRouter();
-    const [mounted, setMounted] = useState(false);  
+    const [mounted, setMounted] = useState(false);
     const searchParams = useSearchParams();
-    const editId = searchParams. get("edit");
+    const editId = searchParams.get("edit");
 
     useEffect(() => {
         setMounted(true);
@@ -114,7 +114,7 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
 
     return <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
         {/* AI Recipt Scanner */}
-        <ReceiptScanner onScanComplete={handleScanComplete} />
+        {!editMode && <ReceiptScanner onScanComplete={handleScanComplete} />}
 
         <div className="space-y-2">
             <label className="text-sm font-medium">Type</label>

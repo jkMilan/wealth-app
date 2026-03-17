@@ -380,7 +380,7 @@ const TransactionTable = ({ transactions }) => {
                                                 <DropdownMenuItem
                                                     onClick={() => {
                                                         router.push(
-                                                            `/transaction/edit/${transaction.id}`
+                                                            `/transactions/create?edit=${transaction.id}`
                                                         );
                                                     }}
                                                 >

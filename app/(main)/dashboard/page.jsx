@@ -1,13 +1,12 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import CreateAccountDrawer from "@/components/create-account-drawer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from 'lucide-react';
-import { getUserAccounts } from '@/actions/dashboard';
+import { getUserAccounts, getDashboardData } from '@/actions/dashboard';
 import AccountCard from './_components/account-card';
 import { getCurrentBudget } from '@/actions/budget';
 import BudgetProgress from './_components/budget-progress';
-import { getFinancialProfile } from "@/actions/ml-insights";
-import { MlInsightsCard } from "./_components/ml-insights-card";
+import DashboardOverview from './_components/transaction-overview';
 
 async function DashboardPage() {
   const accounts = await getUserAccounts();
@@ -19,7 +18,7 @@ async function DashboardPage() {
     budgetData = await getCurrentBudget(defaultAccount.id);
   }
 
-  const mlInsights = await getFinancialProfile();
+  const transactions = await getDashboardData();
 
   return (
     <div className="space-y-8">
@@ -32,9 +31,12 @@ async function DashboardPage() {
       )}
 
       {/* Overview */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <MlInsightsCard insights={mlInsights} />
-      </div> */}
+      <Suspense fallback={"Loading..."}>
+        <DashboardOverview
+          accounts={accounts}
+          transactions={transactions || []}
+        />
+      </Suspense>
 
       {/* Account Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
