@@ -40,7 +40,7 @@ export default createMiddleware(aj, clerk);
 export const config = {
   matcher: [
     // Optimized matcher to ignore static files and Next.js internals
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
+    "/((?!_next|api/ingest/sms|api/cron|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api(?!/ingest/sms|/cron)|trpc)(.*)",
   ],
 };

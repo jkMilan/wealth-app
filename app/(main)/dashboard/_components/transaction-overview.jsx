@@ -8,7 +8,7 @@ import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Pie, Cell, PieChart, ResponsiveContainer, Legend } from "recharts";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#FF0080", "#FF0000", "#000000"];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#FF0080", "#FF0000", "#000000", "#8B0000", "#008000", ];
 
 const DashboardOverview = ({accounts, transactions}) => {
     const[selectedAccountId, setSelectedAccountId] = useState(
