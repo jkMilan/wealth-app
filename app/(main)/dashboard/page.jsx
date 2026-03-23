@@ -7,10 +7,11 @@ import AccountCard from './_components/account-card';
 import { getCurrentBudget } from '@/actions/budget';
 import BudgetProgress from './_components/budget-progress';
 import DashboardOverview from './_components/transaction-overview';
+import HistoricalTrends from './_components/historical-trends';
+import ExportButton from '@/components/export-button';
 
 async function DashboardPage() {
   const accounts = await getUserAccounts();
-
   const defaultAccount = accounts?.find((account) => account.isDefault);
 
   let budgetData = null;
@@ -20,24 +21,13 @@ async function DashboardPage() {
 
   const transactions = await getDashboardData();
 
+  const defaultAccountTransactions = transactions?.filter(
+    (t) => t.accountId === defaultAccount?.id
+  ) || [];
+
   return (
     <div className="space-y-8">
-      {/* Budget Progress */}
-      {defaultAccount && (
-        <BudgetProgress 
-          initialBudget={budgetData?.budget}
-          currentExpanses={budgetData?.currentExpanses || 0}
-        />
-      )}
-
-      {/* Overview */}
-      <Suspense fallback={"Loading..."}>
-        <DashboardOverview
-          accounts={accounts}
-          transactions={transactions || []}
-        />
-      </Suspense>
-
+      
       {/* Account Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <CreateAccountDrawer>
@@ -54,6 +44,25 @@ async function DashboardPage() {
             <AccountCard key={account.id} account={account} />
           ))}
       </div>
+
+      {/* Budget Progress */}
+      {defaultAccount && (
+        <BudgetProgress 
+          initialBudget={budgetData?.budget}
+          currentExpanses={budgetData?.currentExpanses || 0}
+        />
+      )}
+
+      {/* Overview */}
+      <Suspense fallback={"Loading..."}>
+        <DashboardOverview
+          accounts={accounts}
+          transactions={transactions || []}
+        />
+      </Suspense>
+
+      <HistoricalTrends transactions={defaultAccountTransactions} />
+
     </div>
   );
 }

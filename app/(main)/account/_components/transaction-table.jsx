@@ -414,6 +414,11 @@ const TransactionTable = ({ transactions }) => {
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                    </div>
                     <Button
                     variant="outline"
                     size="icon"

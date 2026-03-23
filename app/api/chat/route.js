@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { checkUser } from '@/lib/checkUser';
 import { getFinancialProfile } from '@/actions/ml-insights';
 
 export async function POST(req) {
   console.log("1. Chat API reached!"); 
   const { prompt } = await req.json();
   
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await checkUser();
+  if (!user) {
     console.log("ERROR: No user ID found.");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

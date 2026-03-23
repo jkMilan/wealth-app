@@ -1,6 +1,6 @@
 import HeroSection from '@/components/hero';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { featuresData, howItWorksData, statsData, testimonialsData } from '@/data/landing';
 import Image from 'next/image';
 import Link from 'next/link';

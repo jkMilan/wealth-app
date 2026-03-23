@@ -1,14 +1,14 @@
-// app/api/cron/check-budget/route.js
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { sendEmail } from "@/actions/send-email";
 import EmailTemplate from "@/emails/template";
 
 export async function POST(req) {
+  const authHeader = req.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response('Unauthorized', { status: 401 });
+  }
   try {
-    // Basic security: You might want to add a secret token header here
-    // that Postman must send to prove it's authorized to trigger this.
-    
     const budgets = await db.budget.findMany({
       include: {
         user: { include: { accounts: { where: { isDefault: true } } } }
@@ -43,16 +43,18 @@ export async function POST(req) {
         await sendEmail({
           to: budget.user.email,
           subject: `Budget Alert for ${defaultAccount.name}`,
-          react: EmailTemplate({
-            userName: budget.user.name,
-            type: "budget-alert",
-            data: {
-              percentageUsed: percentageUsed.toFixed(1),
-              budgetAmount: budgetAmount.toFixed(2),
-              totalExpenses: totalExpenses.toFixed(2),
-              accountName: defaultAccount.name,
-            },
-          }),
+          react: (
+            <EmailTemplate
+              userName={budget.user.name}
+              type="budget-alert"
+              data={{
+                percentageUsed: percentageUsed,
+                budgetAmount: budgetAmount,
+                totalExpenses: totalExpenses,
+                accountName: defaultAccount.name, 
+              }}
+            />
+          ),
         });
 
         await db.budget.update({

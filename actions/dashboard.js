@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { checkUser } from "@/lib/checkUser";
 import { db } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -18,17 +18,9 @@ const serializeTransaction = (obj) => {
 
 export async function createAccount(data) {
     try {
-        const { userId } = await auth();
-        if (!userId) throw new Error("Unauthorized");
-
-        const user = await db.user.findUnique({
-            where: {
-                clerkUserId: userId
-            }
-        });
-        if (!user) {
-            throw new Error("User not found");
-        }
+        // checkUser() now returns the actual database user directly!
+        const user = await checkUser();
+        if (!user) throw new Error("Unauthorized");
 
         // Convert balance to float before saving
         const balanceFloat = parseFloat(data.balance);
@@ -69,17 +61,9 @@ export async function createAccount(data) {
 }
 
 export async function getUserAccounts() {
-    const { userId } = await auth();
-    if (!userId) throw new Error("Unauthorized");
-
-    const user = await db.user.findUnique({
-        where: {
-            clerkUserId: userId
-        }
-    });
-    if (!user) {
-        throw new Error("User not found");
-    }
+    // Replaced auth() with our custom checkUser()
+    const user = await checkUser();
+    if (!user) throw new Error("Unauthorized");
 
     const accounts = await db.account.findMany({
         where: { userId: user.id },
@@ -95,31 +79,21 @@ export async function getUserAccounts() {
         },
     });
 
-    const serializeAccount = accounts.map((serializeTransaction));
+    const serializeAccount = accounts.map(serializeTransaction);
 
     return serializeAccount;
 }
 
 export async function getDashboardData() {
-    const { userId } = await auth();
-    if (!userId) throw new Error("Unauthorized");
+    // Replaced auth() with our custom checkUser()
+    const user = await checkUser();
+    if (!user) throw new Error("Unauthorized");
 
-    const user = await db.user.findUnique({
-        where: {
-            clerkUserId: userId
-        },
-    });
-    
-    if (!user) {
-        throw new Error("User not found");
-    }
-
-    // Get all user transactions
+    // Get all user transactions using the user.id
     const transactions = await db.transaction.findMany({
         where: { userId: user.id },
         orderBy: { date: "desc" },
     });
 
     return transactions.map(serializeTransaction);
-}   
-    
+}

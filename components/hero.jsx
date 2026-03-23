@@ -39,17 +39,14 @@ const HeroSection = () => {
             An Ai-powered financial management platform that helps you track,
             analyze, and optimize your spending with real-time insights and personalized recommendations.
         </p>
+        
         <div className="flex justify-center space-x-4">
           <Link href="/dashboard">
             <Button size="lg" className="px-8">
               Get Started
             </Button>
           </Link>
-          {/* <Link href="/dashboard">
-            <Button size="lg" variant="outline" className="px-8">
-              Get Started
-            </Button>
-          </Link> */}
+          
         </div>
         <div className="hero-image-wrapper">
           <div ref={imageRef} className="hero-image">

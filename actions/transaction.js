@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { checkUser } from "@/lib/checkUser";
 import { db } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import aj from "@/lib/arcjet";
@@ -13,15 +13,13 @@ const serializeAmount = (obj) => ({
 
 export async function createTransaction(data) {
     try {
-        const { userId } = await auth();
-        if (!userId) throw new Error("Unauthorized");
+        const user = await checkUser();
+        if (!user) throw new Error("Unauthorized");
 
-        // Arcjet to add rate limiting
         const req = await request();
-        // Check rate limit
         const decision = await aj.protect(req, {
-            userId,
-            requested: 1, // Specify how many tokens to consume
+            userId: user.id,
+            requested: 1,
         });
 
         if (decision.isDenied()) {
@@ -39,13 +37,6 @@ export async function createTransaction(data) {
             }
 
             throw new Error("Request Blocked.");
-        }
-
-        const user = await db.user.findUnique({
-            where: { clerkUserId: userId }
-        });
-        if (!user) {
-            throw new Error("User not found");
         }
 
         const account = await db.account.findUnique({
@@ -84,7 +75,6 @@ export async function createTransaction(data) {
     }
 }
 
-//Helper function to calculate the next recurring date
 function calculateNextRecurringDate(startDate, interval) {
     const date = new Date(startDate);
 
@@ -107,11 +97,9 @@ function calculateNextRecurringDate(startDate, interval) {
 
 export async function scanReceipt(file) {
     try {
-        // Prepare the image to be sent to Python via FormData
         const formData = new FormData();
         formData.append("file", file);
 
-        // Send to your local Python FastAPI server
         const response = await fetch("http://127.0.0.1:8000/api/ml/ocr", {
             method: "POST",
             body: formData,
@@ -142,14 +130,8 @@ export async function scanReceipt(file) {
 }
 
 export async function getTransaction(id) {
-    const { userId } = await auth();
-    if (!userId) throw new Error("Unauthorized");
-
-    const user = await db.user.findUnique({
-        where: { clerkUserId: userId },
-    });
-
-    if (!user) throw new Error("User not found");
+    const user = await checkUser();
+    if (!user) throw new Error("Unauthorized");
 
     const transaction = await db.transaction.findUnique({
         where: { id, userId: user.id },
@@ -162,14 +144,8 @@ export async function getTransaction(id) {
 
 export async function updateTransaction(id, data) {
     try {
-        const { userId } = await auth();
-        if (!userId) throw new Error("Unauthorized");
-
-        const user = await db.user.findUnique({
-            where: { clerkUserId: userId },
-        });
-
-        if (!user) throw new Error("User not found");
+        const user = await checkUser();
+        if (!user) throw new Error("Unauthorized");
 
         const originalTransaction = await db.transaction.findUnique({
             where: { id, userId: user.id },
@@ -222,30 +198,19 @@ export async function updateTransaction(id, data) {
 
 export async function deleteTransaction(id) {
     try {
-        const { userId } = await auth();
-        if (!userId) throw new Error("Unauthorized");
+        const user = await checkUser();
+        if (!user) throw new Error("Unauthorized");
 
-        const user = await db.user.findUnique({
-            where: { clerkUserId: userId },
-        });
-
-        if (!user) throw new Error("User not found");
-
-        // 1. Find the transaction to get its amount, type, and accountId
         const transaction = await db.transaction.findUnique({
             where: { id, userId: user.id },
         });
 
         if (!transaction) throw new Error("Transaction not found");
 
-        // 2. Reverse the balance change
-        // If it was an EXPENSE, deleting it gives money back (increment).
-        // If it was INCOME, deleting it takes money away (decrement).
         const balanceChange = transaction.type === "EXPENSE" 
             ? transaction.amount.toNumber() 
             : -transaction.amount.toNumber();
 
-        // 3. Delete transaction and update account balance in a single transaction block
         await db.$transaction(async (tx) => {
             await tx.transaction.delete({
                 where: { id },
@@ -257,7 +222,6 @@ export async function deleteTransaction(id) {
             });
         });
 
-        // 4. Update the UI
         revalidatePath("/dashboard");
         revalidatePath(`/account/${transaction.accountId}`);
 

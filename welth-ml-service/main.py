@@ -674,6 +674,7 @@ async def process_sms_nlp(req: SMSRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+        
     try:
         text = req.message.lower()
         doc = nlp(text) if nlp else None

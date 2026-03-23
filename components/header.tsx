@@ -1,14 +1,13 @@
-import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "./ui/button"
 import logo from "../public/assets/logo.png"
-import { Bot, LayoutDashboard, PenBox } from "lucide-react"
+import { LayoutDashboard, PenBox, Repeat } from "lucide-react"
 import { checkUser } from "@/lib/checkUser"
-
+import UserButton from "./user-button";
 
 const Header = async () => {
-  await checkUser();
+  const user = await checkUser();
 
   return (
     <div className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b">
@@ -24,7 +23,8 @@ const Header = async () => {
         </Link>
 
         <div className="flex items-center space-x-4">
-          <SignedIn>
+          {user ? (
+            <>
             <Link href={"/dashboard"} className="text-gray-600 hover:text-blue-600 flex items-center gap-2">
               <Button variant="outline" >
                 <LayoutDashboard size={18}/>
@@ -32,12 +32,10 @@ const Header = async () => {
               </Button>
             </Link>
 
-
-
-            <Link href={"/advisor"} className="text-gray-600 hover:text-blue-600 flex items-center gap-2">
+            <Link href={"/subscriptions"} className="text-gray-600 hover:text-blue-600 flex items-center gap-2">
               <Button variant="outline" >
-                <Bot size={18}/>
-                <span className="hidden md:inline">Advisor</span>
+                <Repeat size={18}/>
+                <span className="hidden md:inline">Subscriptions</span>
               </Button>
             </Link>
 
@@ -46,23 +44,21 @@ const Header = async () => {
                 <PenBox size={18}/>
                 <span className="hidden md:inline">Add Transaction</span>
               </Button>
-            </Link> 
-          </SignedIn>
-          
-          <SignedOut>
-            <SignInButton forceRedirectUrl="/dashboard">
-              <Button variant="outline" >Login</Button>
-            </SignInButton>
-          </SignedOut>
-          <SignedIn>
-            <UserButton 
-            appearance={{
-              elements: {
-                avatarBox:"w-20 h-20",
-              },
-            }}
-            />
-          </SignedIn>
+            </Link>
+
+            <UserButton user={user} />
+
+            </>
+          ) : (
+            <>
+            <Link href={"/sign-in"}>
+              <Button variant="outline">Sign In</Button>
+            </Link>
+            <Link href={"/sign-up"}>
+              <Button>Sign Up</Button>
+            </Link>
+            </>
+          )}
         </div>
       </nav>
     </div>

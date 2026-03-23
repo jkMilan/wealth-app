@@ -7,19 +7,21 @@ import {
   Preview,
   Section,
   Text,
+  Tailwind,
+  Button
 } from "@react-email/components";
+import * as React from "react";
 
-// Dummy data for preview
 const PREVIEW_DATA = {
   monthlyReport: {
-    userName: "",
+    userName: "Milan",
     type: "monthly-report",
-    data: {},
+    data: { month: "March", stats: { totalIncome: 50000, totalExpenses: 30000, byCategory: { Food: 15000, Transport: 5000 } }, insights: ["You saved 20% more this month!"] },
   },
   budgetAlert: {
-    userName: "",
+    userName: "Milan",
     type: "budget-alert",
-    data: {},
+    data: { percentageUsed: 85, budgetAmount: 100000, totalExpenses: 85000 },
   },
 };
 
@@ -28,175 +30,128 @@ export default function EmailTemplate({
   type = "monthly-report",
   data = {},
 }) {
-  if (type === "monthly-report") {
-    return (
-      <Html>
-        <Head />
-        <Preview>Your Monthly Financial Report</Preview>
-        <Body style={styles.body}>
-          <Container style={styles.container}>
-            <Heading style={styles.title}>Monthly Financial Report</Heading>
-
-            <Text style={styles.text}>Hello {userName},</Text>
-            <Text style={styles.text}>
-              Here&rsquo;s your financial summary for {data?.month}:
-            </Text>
-
-            {/* Main Stats */}
-            <Section style={styles.statsContainer}>
-              <div style={styles.stat}>
-                <Text style={styles.text}>Total Income</Text>
-                <Text style={styles.heading}>LKR {data?.stats?.totalIncome}</Text>
-              </div>
-              <div style={styles.stat}>
-                <Text style={styles.text}>Total Expenses</Text>
-                <Text style={styles.heading}>LKR {data?.stats?.totalExpenses}</Text>
-              </div>
-              <div style={styles.stat}>
-                <Text style={styles.text}>Net</Text>
-                <Text style={styles.heading}>
-                  LKR {(data?.stats?.totalIncome || 0) - (data?.stats?.totalExpenses || 0)}
-                </Text>
-              </div>
+  
+  // SHARED UI WRAPPER
+  const EmailWrapper = ({ previewText, children }) => (
+    <Html>
+      <Head />
+      <Preview>{previewText}</Preview>
+      <Tailwind>
+        <Body className="bg-slate-900 font-sans my-auto mx-auto px-2 py-10">
+          <Container className="border border-solid border-[#eaeaea] rounded-xl my-[40px] mx-auto p-[30px] max-w-[500px] bg-white shadow-lg">
+            
+            {/* Logo */}
+            <Section className="mt-2 mb-8 text-center">
+              <Text className="text-blue-600 text-2xl font-bold m-0 tracking-tight">
+                Wealth AI
+              </Text>
             </Section>
 
-            {/* Category Breakdown */}
-            {data?.stats?.byCategory && (
-              <Section style={styles.section}>
-                <Heading style={styles.heading}>Expenses by Category</Heading>
-                {Object.entries(data?.stats?.byCategory).map(
-                  ([category, amount]) => (
-                    <div key={category} style={styles.row}>
-                      <Text style={styles.text}>{category}</Text>
-                      <Text style={styles.text}>LKR {amount}</Text>
-                    </div>
-                  )
-                )}
-              </Section>
-            )}
+            {children}
 
-            {/* AI Insights */}
-            {data?.insights && (
-              <Section style={styles.section}>
-                <Heading style={styles.heading}>Welth Insights</Heading>
-                {data.insights.map((insight, index) => (
-                  <Text key={index} style={styles.text}>
-                    • {insight}
-                  </Text>
-                ))}
-              </Section>
-            )}
-
-            <Text style={styles.footer}>
-              Thank you for using Welth. Keep tracking your finances for better
-              financial health!
+            {/* Disclaimer */}
+            <Text className="text-gray-500 text-[13px] leading-[24px] text-center mt-8 pt-4 border-t border-gray-100">
+              Thank you for using Wealth AI. Keep tracking your finances for better financial health!
             </Text>
           </Container>
+
+          {/* Footer outside the card */}
+          <Text className="text-slate-400 text-[12px] text-center mt-6">
+            © 2026 Wealth AI. All rights reserved.
+          </Text>
         </Body>
-      </Html>
+      </Tailwind>
+    </Html>
+  );
+
+  // 1. MONTHLY REPORT TEMPLATE
+  if (type === "monthly-report") {
+    return (
+      <EmailWrapper previewText="Your Monthly Financial Report">
+        <Text className="text-gray-800 text-[16px] leading-[24px] font-medium">Hello {userName},</Text>
+        <Heading className="text-gray-900 text-[24px] font-bold text-center p-0 my-[24px] mx-0">
+          Monthly Report: {data?.month}
+        </Heading>
+
+        {/* Main Stats */}
+        <Section className="bg-gray-50 border border-gray-100 rounded-lg p-6 mb-6">
+          <div className="mb-4">
+            <Text className="text-gray-500 m-0 text-sm font-medium">Total Income</Text>
+            <Text className="text-green-600 font-bold text-lg m-0">LKR {data?.stats?.totalIncome}</Text>
+          </div>
+          <div className="mb-4">
+            <Text className="text-gray-500 m-0 text-sm font-medium">Total Expenses</Text>
+            <Text className="text-red-600 font-bold text-lg m-0">LKR {data?.stats?.totalExpenses}</Text>
+          </div>
+          <div className="pt-4 border-t border-gray-200">
+            <Text className="text-gray-900 m-0 text-sm font-bold">Net Balance</Text>
+            <Text className="text-gray-900 font-bold text-xl m-0">
+              LKR {(data?.stats?.totalIncome || 0) - (data?.stats?.totalExpenses || 0)}
+            </Text>
+          </div>
+        </Section>
+
+        {/* AI Insights */}
+        {data?.insights && data.insights.length > 0 && (
+          <Section className="bg-blue-50 border border-blue-100 rounded-lg p-6 mb-6">
+            <Heading className="text-blue-900 text-[16px] font-bold m-0 mb-4">Wealth Insights</Heading>
+            {data.insights.map((insight, index) => (
+              <Text key={index} className="text-blue-800 text-[14px] m-0 mb-2">
+                ✨ {insight}
+              </Text>
+            ))}
+          </Section>
+        )}
+        
+        <Section className="text-center mt-[32px] mb-[16px]">
+          <Button className="bg-blue-600 rounded-lg text-white text-[14px] font-semibold no-underline text-center px-6 py-3" href="http://localhost:3000/dashboard">
+            View Full Dashboard
+          </Button>
+        </Section>
+      </EmailWrapper>
     );
   }
 
+  // 2. BUDGET ALERT TEMPLATE
   if (type === "budget-alert") {
     return (
-      <Html>
-        <Head />
-        <Preview>Budget Alert</Preview>
-        <Body style={styles.body}>
-          <Container style={styles.container}>
-            <Heading style={styles.title}>Budget Alert</Heading>
-            <Text style={styles.text}>Hello {userName},</Text>
-            <Text style={styles.text}>
-              You&rsquo;ve used {data?.percentageUsed?.toFixed(1)}% of your
-              monthly budget.
+      <EmailWrapper previewText="Budget Alert">
+        <Text className="text-gray-800 text-[16px] leading-[24px] font-medium">Hello {userName},</Text>
+        <Heading className="text-gray-900 text-[24px] font-bold text-center p-0 my-[24px] mx-0">
+          Budget Alert: {data?.accountName || "Your Account"}
+        </Heading>
+        
+        <Section className="bg-red-50 border border-solid border-red-100 rounded-lg p-4 text-center mb-6">
+          <Text className="m-0 text-red-900 font-medium text-[15px] flex items-center justify-center">
+            ⚠️ You've used {data?.percentageUsed?.toFixed(1)}% of your monthly budget.
+          </Text>
+        </Section>
+
+        <Section className="bg-gray-50 border border-gray-100 rounded-lg p-6 mb-6">
+          <div className="mb-4">
+            <Text className="text-gray-500 m-0 text-sm font-medium">Budget Amount</Text>
+            <Text className="text-gray-900 font-bold text-lg m-0">LKR {data?.budgetAmount}</Text>
+          </div>
+          <div className="mb-4">
+            <Text className="text-gray-500 m-0 text-sm font-medium">Spent So Far</Text>
+            <Text className="text-red-600 font-bold text-lg m-0">LKR {data?.totalExpenses}</Text>
+          </div>
+          <div className="pt-4 border-t border-gray-200">
+            <Text className="text-gray-900 m-0 text-sm font-bold">Remaining</Text>
+            <Text className="text-green-600 font-bold text-xl m-0">
+              LKR {(data?.budgetAmount || 0) - (data?.totalExpenses || 0)}
             </Text>
-            <Section style={styles.statsContainer}>
-              <div style={styles.stat}>
-                <Text style={styles.text}>Budget Amount</Text>
-                <Text style={styles.heading}>LKR {data?.budgetAmount}</Text>
-              </div>
-              <div style={styles.stat}>
-                <Text style={styles.text}>Spent So Far</Text>
-                <Text style={styles.heading}>LKR {data?.totalExpenses}</Text>
-              </div>
-              <div style={styles.stat}>
-                <Text style={styles.text}>Remaining</Text>
-                <Text style={styles.heading}>
-                  LKR {(data?.budgetAmount || 0) - (data?.totalExpenses || 0)}
-                </Text>
-              </div>
-            </Section>
-          </Container>
-        </Body>
-      </Html>
+          </div>
+        </Section>
+
+        <Section className="text-center mt-[32px] mb-[16px]">
+          <Button className="bg-blue-600 rounded-lg text-white text-[14px] font-semibold no-underline text-center px-6 py-3" href="http://localhost:3000/dashboard">
+            Review Expenses
+          </Button>
+        </Section>
+      </EmailWrapper>
     );
   }
 }
 
-const styles = {
-  body: {
-    backgroundColor: "#f6f9fc",
-    fontFamily: "-apple-system, sans-serif",
-  },
-  container: {
-    backgroundColor: "#ffffff",
-    margin: "0 auto",
-    padding: "20px",
-    borderRadius: "5px",
-    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-  },
-  title: {
-    color: "#1f2937",
-    fontSize: "32px",
-    fontWeight: "bold",
-    textAlign: "center",
-    margin: "0 0 20px",
-  },
-  heading: {
-    color: "#1f2937",
-    fontSize: "20px",
-    fontWeight: "600",
-    margin: "0 0 16px",
-  },
-  text: {
-    color: "#4b5563",
-    fontSize: "16px",
-    margin: "0 0 16px",
-  },
-  section: {
-    marginTop: "32px",
-    padding: "20px",
-    backgroundColor: "#f9fafb",
-    borderRadius: "5px",
-    border: "1px solid #e5e7eb",
-  },
-  statsContainer: {
-    margin: "32px 0",
-    padding: "20px",
-    backgroundColor: "#f9fafb",
-    borderRadius: "5px",
-  },
-  stat: {
-    marginBottom: "16px",
-    padding: "12px",
-    backgroundColor: "#fff",
-    borderRadius: "4px",
-    boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-  },
-  row: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: "12px 0",
-    borderBottom: "1px solid #e5e7eb",
-  },
-  footer: {
-    color: "#6b7280",
-    fontSize: "14px",
-    textAlign: "center",
-    marginTop: "32px",
-    paddingTop: "16px",
-    borderTop: "1px solid #e5e7eb",
-  },
-};
-
-EmailTemplate.PreviewProps = PREVIEW_DATA.monthlyReport;
+EmailTemplate.PreviewProps = PREVIEW_DATA.budgetAlert;

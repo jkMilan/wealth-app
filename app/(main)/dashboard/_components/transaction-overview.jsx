@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format } from "date-fns";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Pie, Cell, PieChart, ResponsiveContainer, Legend } from "recharts";
+import { Pie, Cell, PieChart, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#FF0080", "#FF0000", "#000000", "#8B0000", "#008000", ];
 
@@ -25,13 +25,13 @@ const DashboardOverview = ({accounts, transactions}) => {
     .slice(0, 5);
 
     // Calculate expense breakdown for current month
-    const currentData = new Date();
+    const currentDate = new Date();
     const currentMonthExpenses = accountTransactions.filter((t) => {
         const transactionDate = new Date(t.date);
         return (
             t.type === "EXPENSE" &&
-            transactionDate.getMonth() === currentData.getMonth() &&
-            transactionDate.getFullYear() === currentData.getFullYear()
+            transactionDate.getMonth() === currentDate.getMonth() &&
+            transactionDate.getFullYear() === currentDate.getFullYear()
         );
     });
 
@@ -54,7 +54,7 @@ const DashboardOverview = ({accounts, transactions}) => {
     );
 
     return (
-    <div className="grid grid-4 md:grid-cols-2">
+    <div className="grid gap-4 md:grid-cols-2">
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-base font-normal">
@@ -144,7 +144,10 @@ const DashboardOverview = ({accounts, transactions}) => {
                                         fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-
+                                <Tooltip 
+                                    formatter={(value) => `LKR ${value.toFixed(2)}`}
+                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                />
                                 <Legend />
                             </PieChart>
                         </ResponsiveContainer>

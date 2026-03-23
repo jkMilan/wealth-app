@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/prisma'; 
-import { inngest } from '@/lib/inngest/client';
+
 
 export async function POST(req) {
   try {

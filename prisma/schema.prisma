@@ -10,7 +10,7 @@ datasource db {
 
 model User {
   id           String        @id @default(uuid())
-  clerkUserId  String        @unique
+  passwordHash String        // <-- Added this for our custom auth
   email        String        @unique
   name         String?
   imageUrl     String?

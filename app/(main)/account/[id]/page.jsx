@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import TransactionTable from "../_components/transaction-table";
 import { BarLoader } from "react-spinners";
 import AccountChart from "../_components/account-chart";
+import ExportButton from "@/components/export-button";
 
 const AccountPage = async ({ params }) => {
     const { id } = await params;
@@ -28,14 +29,23 @@ const AccountPage = async ({ params }) => {
             </p>
         </div>
         
-        <div className="text-right pb-2">
-            <div className="text-xl sm:text-2xl font-bold">
-                LKR {parseFloat(account.balance).toFixed(2)}
+        <div className="flex flex-col sm:items-end gap-4 w-full sm:w-auto">
+                <div className="text-left sm:text-right">
+                    <div className="text-xl sm:text-2xl font-bold">
+                        LKR {parseFloat(account.balance).toFixed(2)}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        {account._count.transactions} Transactions
+                    </p>
+                </div>
+                
+                {/* 🚀 The Export Button Dropped Here */}
+                <ExportButton 
+                    transactions={transactions} 
+                    accountName={account.name} 
+                />
             </div>
-            <p className="text-sm text-muted-foreground">
-                {account._count.transactions} Transactions
-            </p>
-        </div>
+        
         </div>
 
         {/* Chart Section */}
