@@ -100,7 +100,8 @@ export async function scanReceipt(file) {
         const formData = new FormData();
         formData.append("file", file);
 
-        const mlApiUrl = process.env.ML_SERVICE_URL || "http://127.0.0.1:8000";
+        const rawUrl = process.env.ML_SERVICE_URL || "http://127.0.0.1:8000";
+        const mlApiUrl = rawUrl.replace(/\/$/, "");
 
         const response = await fetch(`${mlApiUrl}/api/ml/ocr`, {
             method: "POST",
