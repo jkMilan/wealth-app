@@ -52,7 +52,7 @@ const HistoricalTrends = ({ transactions }) => {
             </CardHeader>
             <CardContent>
                 <div className="h-[350px] w-full mt-4">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                             <XAxis 
@@ -76,7 +76,7 @@ const HistoricalTrends = ({ transactions }) => {
                             />
                             <Legend iconType="circle" />
                             <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="expense" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="expense" name="Expenses" fill="#FF0000" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
