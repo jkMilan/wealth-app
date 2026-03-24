@@ -136,8 +136,8 @@ const AccountChart = ({ transactions }) => {
                             />
                             <Tooltip formatter={(value) => [`LKR ${value}`, undefined]} />
                             <Legend />
-                            <Bar dataKey="income" name="Income" fill="#ab290cff" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="expense" name="Expense" fill="#08b208ff" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="income" name="Income" fill="#08b208ff" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="expense" name="Expense" fill="#FF0000" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
