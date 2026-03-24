@@ -7,23 +7,25 @@ export async function POST(req) {
     const body = await req.json();
     console.log("SUCCESS! RECEIVED SMS DATA:", body); 
     
-    // Add a secret key so only your iPhone can trigger this
     const { message, sender, secretKey } = body;
 
-    // 1. Security check for Postman/Shortcut
     if (secretKey !== "Milan2908") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 1. The Postman Part: Talk to Python ML instantly
-    const pythonResponse = await fetch('http://127.0.0.1:8000/api/ml/sms', {
+    const rawUrl = (process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").trim().replace(/\/$/, "");
+    const finalUrl = `${rawUrl}/api/ml/sms`;
+
+    console.log("SMS AI FETCH URL:", finalUrl);
+
+    const pythonResponse = await fetch(finalUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
         body: JSON.stringify({ message, sender })
     });
 
     if (!pythonResponse.ok) {
-        throw new Error("ML Service Error");
+        throw new Error(`ML Service Error: ${pythonResponse.statusText}`);
     }
 
     const aiData = await pythonResponse.json();
