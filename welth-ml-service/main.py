@@ -14,7 +14,6 @@ import spacy
 import re
 import calendar
 from datetime import datetime
-import platform
 
 # Common OCR misspellings for months
 MONTH_MAP = {
@@ -129,11 +128,7 @@ def fuzzy_parse_date(text):
 
     return None
 
-if platform.system() == "Windows":
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-else:
-    pytesseract.pytesseract.tesseract_cmd = "/usr/bin/tesseract"
-
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 app = FastAPI(title="WELTH ML Service")
 @app.get("/")
 async def root():

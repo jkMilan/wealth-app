@@ -10,7 +10,7 @@ datasource db {
 
 model User {
   id           String        @id @default(uuid())
-  passwordHash String        // <-- Added this for our custom auth
+  passwordHash String        
   email        String        @unique
   name         String?
   imageUrl     String?
