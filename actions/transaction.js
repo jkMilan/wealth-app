@@ -100,12 +100,17 @@ export async function scanReceipt(file) {
         const formData = new FormData();
         formData.append("file", file);
 
-        const rawUrl = process.env.ML_SERVICE_URL || "http://127.0.0.1:8000";
-        const mlApiUrl = rawUrl.replace(/\/$/, "");
+        const rawUrl = (process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").trim().replace(/\/$/, "");
+        const finalUrl = `${rawUrl}/api/ml/ocr`;
 
-        const response = await fetch(`${mlApiUrl}/api/ml/ocr`, {
+        console.log("AI Fetch URL :", finalUrl);
+
+        const response = await fetch(finalUrl, {
             method: "POST",
             body: formData,
+            headers: {
+                "ngrok-skip-browser-warning": "true"
+            }
         });
 
         if (!response.ok) {
