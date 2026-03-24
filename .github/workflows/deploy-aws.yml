@@ -1,29 +1,43 @@
-# Use the official Python 3.10 image
-FROM python:3.10
+name: Deploy ML Service to AWS EC2
 
-# Install the required system dependencies for OpenCV and Tesseract OCR
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    tesseract-ocr \
-    && rm -rf /var/lib/apt/lists/*
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'welth-ml-service/**'
 
-# Create a standard user to run the app safely (not as root)
-RUN useradd -m -u 1000 user
-USER user
-ENV PATH="/home/user/.local/bin:$PATH"
-
-# Set the working directory inside the container
-WORKDIR /app
-
-# Copy the requirements file first to install Python libraries
-COPY --chown=user requirements.txt .
-RUN pip install --no-cache-dir --upgrade -r requirements.txt
-
-# Download the spaCy NLP model
-RUN python -m spacy download en_core_web_sm
-
-# Copy the rest of your machine learning code into the container
-COPY --chown=user . .
-
-# Start the FastAPI server on port 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute Remote SSH Commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ubuntu
+          key: ${{ secrets.AWS_KEY }}
+          script: |
+            # 1. Create 2GB of Swap Space (Fake RAM)
+            if [ ! -f /swapfile ]; then
+              sudo fallocate -l 2G /swapfile
+              sudo chmod 600 /swapfile
+              sudo mkswap /swapfile
+              sudo swapon /swapfile
+            fi
+            
+            # 2. Install Docker
+            sudo apt-get update
+            sudo apt-get install -y docker.io git
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            
+            # 3. Clean up and download code
+            rm -rf wealth-app
+            git clone https://github.com/YOUR_GITHUB_USERNAME/wealth-app.git
+            cd wealth-app/welth-ml-service
+            
+            # 4. Stop old server, build and run new one
+            sudo docker stop welth-ml || true
+            sudo docker rm welth-ml || true
+            sudo docker build -t welth-ml-image .
+            sudo docker run -d --restart unless-stopped --name welth-ml -p 8000:8000 welth-ml-image
