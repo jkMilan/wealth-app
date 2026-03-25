@@ -18,9 +18,17 @@ export async function POST(req) {
       data: { email, passwordHash, name },
     });
 
-    await setAuthCookie(user.id);
+    const token = await setAuthCookie(user.id);
 
-    return NextResponse.json({ success: true, user: { id: user.id, email: user.email } });
+    return NextResponse.json(
+      { 
+        success: true, 
+        user: { 
+          id: user.id, 
+          email: user.email 
+        }, 
+        token: token 
+      });
   } catch (error) {
     console.error("REGISTER ERROR: ", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
