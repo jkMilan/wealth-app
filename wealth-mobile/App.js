@@ -1,33 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import * as SecureStore from 'expo-secure-store'; // NEW: We read the token from here!
+import * as SecureStore from 'expo-secure-store';
 
 import LogExpenseScreen from './screens/LogExpenseScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import AuthScreen from './screens/AuthScreen';
+import AccountsScreen from './screens/AccountsScreen';
+import SubscriptionsScreen from './screens/SubscriptionsScreen';
+import ProfileScreen from './screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
+
+// --- PLACEHOLDER SCREENS ---
+// We will use these so the app runs while you build the actual screens later!
+const PlaceholderScreen = ({ title }) => (
+  <View className="flex-1 bg-zinc-900 items-center justify-center p-6">
+    <Ionicons name="construct-outline" size={64} color="#71717a" className="mb-4" />
+    <Text className="text-2xl font-bold text-white mb-2">{title}</Text>
+    <Text className="text-zinc-400 text-center">This screen is under construction.</Text>
+  </View>
+);
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // 1. Check if the user has a NextAuth token saved in the iPhone's vault
     async function checkSession() {
       const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
       if (storedSession) {
-        setSession(JSON.parse(storedSession)); // Token found! Log them in.
+        setSession(JSON.parse(storedSession)); 
       }
       setIsReady(true);
     }
     checkSession();
   }, []);
 
-  // Function to handle logging out
   const handleLogout = async () => {
     await SecureStore.deleteItemAsync('wealth_ai_session');
     setSession(null);
@@ -41,36 +52,102 @@ export default function App() {
     );
   }
 
-  // IF NO SESSION: Show the Login Screen and pass a function to update the session
   if (!session) {
     return <AuthScreen onLoginSuccess={(data) => setSession(data)} />;
   }
 
-  // IF SESSION EXISTS: Show the tabs!
   return (
     <NavigationContainer>
       <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName = route.name === 'Log Expense' ? (focused ? 'add-circle' : 'add-circle-outline') : (focused ? 'bar-chart' : 'bar-chart-outline');
-            return <Ionicons name={iconName} size={size} color={color} />;
+        screenOptions={{
+          tabBarActiveTintColor: '#3b82f6', // Bright Blue for active
+          tabBarInactiveTintColor: '#71717a', // Zinc-500 for inactive
+          tabBarStyle: { 
+            backgroundColor: '#18181b', // Zinc-900
+            borderTopWidth: 1,
+            borderTopColor: '#27272a', // Zinc-800
+            paddingBottom: 8,
+            paddingTop: 8,
+            height: 65,
           },
-          tabBarActiveTintColor: '#3b82f6',
-          tabBarInactiveTintColor: '#9ca3af',
-          tabBarStyle: { backgroundColor: '#27272a', borderTopWidth: 0 },
-          headerStyle: { backgroundColor: '#18181b', shadowColor: 'transparent' },
+          headerStyle: { 
+            backgroundColor: '#18181b', 
+            shadowColor: 'transparent',
+            borderBottomWidth: 1,
+            borderBottomColor: '#27272a'
+          },
           headerTintColor: '#ffffff',
           headerTitleStyle: { fontWeight: 'bold' },
-          // A quick logout button added to the header
-          headerRight: () => (
-            <TouchableOpacity onPress={handleLogout} style={{ marginRight: 16 }}>
-              <Ionicons name="log-out-outline" size={24} color="#ef4444" />
-            </TouchableOpacity>
-          )
-        })}
+        }}
       >
-        <Tab.Screen name="Log Expense" component={LogExpenseScreen} />
-        <Tab.Screen name="Dashboard" component={DashboardScreen} />
+        {/* 1. Dashboard */}
+        <Tab.Screen 
+          name="Dashboard" 
+          component={DashboardScreen} 
+          options={{
+            tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />
+          }}
+        />
+
+        {/* 2. Accounts Screen */}
+        <Tab.Screen 
+          name="Accounts" 
+          component={AccountsScreen} 
+          options={{
+            tabBarIcon: ({ color, size }) => <Ionicons name="wallet" size={size} color={color} />
+          }}
+        />
+
+        {/* 3. CENTER FLOATING BUTTON: Add Transaction */}
+        <Tab.Screen 
+          name="Add" 
+          component={LogExpenseScreen} 
+          options={{
+            tabBarLabel: () => null, // Hide the text label to make it purely a button
+            headerTitle: "Add Transaction",
+            tabBarIcon: ({ focused }) => (
+              <View style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: '#3b82f6',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 25, // This forces the button to "float" above the tab bar
+                shadowColor: '#3b82f6',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.4,
+                shadowRadius: 5,
+                elevation: 5, // For Android shadow
+              }}>
+                <Ionicons name="scan" size={28} color="#ffffff" />
+              </View>
+            )
+          }}
+        />
+
+       {/* 4. Subscriptions Screen */}
+        <Tab.Screen 
+          name="Subs" 
+          component={SubscriptionsScreen} 
+          options={{
+            tabBarIcon: ({ color, size }) => <Ionicons name="sync-circle" size={size} color={color} />
+          }}
+        />
+
+        {/* 5. Profile Settings */}
+        <Tab.Screen 
+          name="Profile" 
+          component={ProfileScreen} 
+          options={{
+            tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
+            headerRight: () => (
+              <TouchableOpacity onPress={handleLogout} style={{ marginRight: 16 }}>
+                <Ionicons name="log-out-outline" size={24} color="#ef4444" />
+              </TouchableOpacity>
+            )
+          }}
+        />
       </Tab.Navigator>
     </NavigationContainer>
   );

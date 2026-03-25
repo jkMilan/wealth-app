@@ -67,7 +67,7 @@ export default function LogExpenseScreen() {
 
         <TextInput
           className="w-full bg-zinc-700 text-white px-4 py-4 rounded-xl mb-4 text-lg border border-zinc-600 focus:border-blue-500"
-          placeholder="e.g. Spent $15 on Starbucks"
+          placeholder="e.g. Spent LKR 1500 on Starbucks"
           placeholderTextColor="#9ca3af"
           value={expense}
           onChangeText={setExpense}

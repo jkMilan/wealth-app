@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, RefreshControl, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import { PieChart } from 'react-native-chart-kit';
+
+const screenWidth = Dimensions.get("window").width;
 
 export default function DashboardScreen() {
-  const [dashboardData, setDashboardData] = useState({ balance: 0, income: 0, expense: 0, transactions: [] });
+  const [dashboardData, setDashboardData] = useState({ totalBalance: 0, accounts: [], income: 0, expense: 0, transactions: [] });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -45,8 +48,33 @@ export default function DashboardScreen() {
     fetchDashboardData();
   };
 
+  // Process data for the Pie Chart
+  const getPieData = () => {
+    if (!dashboardData.transactions) return [];
+    
+    const expenses = dashboardData.transactions.filter(t => t.type === 'EXPENSE');
+    if (expenses.length === 0) return [];
+
+    const categoryTotals = expenses.reduce((acc, t) => {
+      const cat = t.category || 'Uncategorized';
+      acc[cat] = (acc[cat] || 0) + Math.abs(Number(t.amount));
+      return acc;
+    }, {});
+
+    const colors = ['#f87171', '#3b82f6', '#facc15', '#a855f7', '#fb923c', '#10b981'];
+    
+    return Object.keys(categoryTotals).map((key, index) => ({
+      name: key,
+      amount: categoryTotals[key],
+      color: colors[index % colors.length],
+      legendFontColor: '#9ca3af',
+      legendFontSize: 12
+    }));
+  };
+
   const renderTransaction = ({ item }) => {
-    const isIncome = item.type === 'INCOME' || item.amount > 0;
+    // FIX: Only check the exact type from Prisma!
+    const isIncome = item.type === 'INCOME';
 
     return (
       <View className="flex-row justify-between items-center bg-zinc-800 p-4 mb-3 rounded-2xl shadow-sm border border-zinc-700/50">
@@ -78,53 +106,98 @@ export default function DashboardScreen() {
     );
   }
 
+  const pieData = getPieData();
+
   return (
     <View className="flex-1 bg-zinc-900 px-4 pt-6">
       
-      {/* 1. Total Balance Card */}
-      <View className="bg-zinc-800 rounded-3xl p-6 mb-4 border border-zinc-700/50">
-        <Text className="text-zinc-400 text-sm font-medium mb-1">Total Balance</Text>
-        <Text className="text-white text-4xl font-bold">LKR {dashboardData.balance.toFixed(2)}</Text>
-      </View>
-
-      {/* 2. Income / Expense Mini Cards */}
-      <View className="flex-row justify-between mb-8">
-        <View className="bg-zinc-800 rounded-2xl p-4 flex-1 mr-2 border border-zinc-700/50">
-          <View className="flex-row items-center mb-2">
-            <Ionicons name="trending-up" size={16} color="#4ade80" />
-            <Text className="text-zinc-400 text-xs ml-2">Income</Text>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}
+      >
+        {/* 1. Account Cards Carousel */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
+          
+          {/* Default Account Card (Blue) */}
+          <View className="bg-blue-600 rounded-3xl p-6 mr-4 w-72 shadow-lg shadow-blue-500/30">
+            <View className="flex-row justify-between items-center mb-1">
+              <Text className="text-blue-200 text-sm font-medium uppercase tracking-wider">
+                {dashboardData.accounts?.[0]?.name || 'Main Account'}
+              </Text>
+              <View className="bg-blue-500/50 px-2 py-0.5 rounded">
+                <Text className="text-white text-[10px] font-bold uppercase tracking-wider">Default</Text>
+              </View>
+            </View>
+            <Text className="text-white text-3xl font-bold">
+              LKR {Number(dashboardData.accounts?.[0]?.balance || 0).toFixed(2)}
+            </Text>
           </View>
-          <Text className="text-green-400 text-xl font-bold">LKR {dashboardData.income.toFixed(2)}</Text>
-        </View>
 
-        <View className="bg-zinc-800 rounded-2xl p-4 flex-1 ml-2 border border-zinc-700/50">
-          <View className="flex-row items-center mb-2">
-            <Ionicons name="trending-down" size={16} color="#f87171" />
-            <Text className="text-zinc-400 text-xs ml-2">Expenses</Text>
+          {/* Other Accounts (Dark Grey) */}
+          {dashboardData.accounts?.slice(1).map((account) => (
+            <View key={account.id} className="bg-zinc-800 rounded-3xl p-6 mr-4 w-64 border border-zinc-700/50">
+              <Text className="text-zinc-400 text-sm font-medium mb-1 uppercase tracking-wider">{account.name}</Text>
+              <Text className="text-white text-2xl font-bold">LKR {Number(account.balance).toFixed(2)}</Text>
+            </View>
+          ))}
+          
+        </ScrollView>
+
+        {/* 2. Income / Expense Mini Cards */}
+        <View className="flex-row justify-between mb-6">
+          <View className="bg-zinc-800 rounded-2xl p-4 flex-1 mr-2 border border-zinc-700/50">
+            <View className="flex-row items-center mb-2">
+              <Ionicons name="trending-up" size={16} color="#4ade80" />
+              <Text className="text-zinc-400 text-xs ml-2 uppercase tracking-wider">Income</Text>
+            </View>
+            <Text className="text-green-400 text-xl font-bold">LKR {dashboardData.income?.toFixed(2) || '0.00'}</Text>
           </View>
-          <Text className="text-red-400 text-xl font-bold">LKR {dashboardData.expense.toFixed(2)}</Text>
-        </View>
-      </View>
 
-      {/* 3. Recent Transactions List */}
-      <Text className="text-xl font-bold text-white mb-4">Recent Transactions</Text>
-      
-      {dashboardData.transactions.length === 0 ? (
-        <View className="flex-1 justify-center items-center">
-          <Text className="text-zinc-500 text-lg">No transactions yet.</Text>
+          <View className="bg-zinc-800 rounded-2xl p-4 flex-1 ml-2 border border-zinc-700/50">
+            <View className="flex-row items-center mb-2">
+              <Ionicons name="trending-down" size={16} color="#f87171" />
+              <Text className="text-zinc-400 text-xs ml-2 uppercase tracking-wider">Expenses</Text>
+            </View>
+            <Text className="text-red-400 text-xl font-bold">LKR {dashboardData.expense?.toFixed(2) || '0.00'}</Text>
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={dashboardData.transactions}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderTransaction}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
-          }
-          contentContainerStyle={{ paddingBottom: 30 }}
-        />
-      )}
+
+        {/* 3. Expense Breakdown Chart */}
+        {pieData.length > 0 && (
+          <View className="bg-zinc-800 rounded-3xl p-4 mb-6 border border-zinc-700/50">
+            <Text className="text-white font-bold text-lg mb-2 ml-2">Expense Breakdown</Text>
+            <PieChart
+              data={pieData}
+              width={screenWidth - 64} // Padding compensation
+              height={160}
+              chartConfig={{
+                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              }}
+              accessor={"amount"}
+              backgroundColor={"transparent"}
+              paddingLeft={"10"}
+              absolute
+            />
+          </View>
+        )}
+
+        {/* 4. Recent Transactions List */}
+        <Text className="text-xl font-bold text-white mb-4 ml-1">Recent Transactions</Text>
+        
+        {dashboardData.transactions?.length === 0 ? (
+          <View className="py-10 items-center">
+            <Text className="text-zinc-500 text-lg">No transactions yet.</Text>
+          </View>
+        ) : (
+          <View className="pb-10">
+            {dashboardData.transactions.map((item) => (
+               <React.Fragment key={item.id}>
+                 {renderTransaction({ item })}
+               </React.Fragment>
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
