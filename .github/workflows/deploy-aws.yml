@@ -33,7 +33,7 @@ jobs:
             
             # 3. Clean up and download code
             rm -rf wealth-app
-            ggit clone https://github.com/jkMilan/wealth-app.git
+            git clone https://github.com/jkMilan/wealth-app.git
             cd wealth-app/welth-ml-service
             
             # 4. Stop old server, build and run new one
