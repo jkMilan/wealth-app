@@ -4,14 +4,16 @@ import { checkUser } from "@/lib/checkUser";
 import { db } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-export const getCurrentBudget = async () => {
+export const getCurrentBudget = async (accountId) => {
     try {
         const user = await checkUser();
         if (!user) throw new Error("Unauthorized");
+        if (!accountId) return null;
 
         const budget = await db.budget.findFirst({
             where: {
                 userId: user.id,
+                accountId: accountId,
             },
         });
 
@@ -30,6 +32,7 @@ export const getCurrentBudget = async () => {
         const expanses = await db.transaction.aggregate({
             where: {
                 userId: user.id,
+                accountId: accountId,
                 type: "EXPENSE",
                 date: {
                     gte: startOfMonth,
@@ -53,20 +56,21 @@ export const getCurrentBudget = async () => {
     }
 }
 
-export async function updateBudget(amount) {
+export async function updateBudget(accountId, amount) {
     try {
         const user = await checkUser();
         if (!user) throw new Error("Unauthorized");
 
         const budget = await db.budget.upsert({
             where: {
-                userId: user.id,
+                accountId: accountId,
             },
             update: {
                 amount,
             },
             create: {
                 userId: user.id,
+                accountId: accountId,
                 amount,
             },
         });

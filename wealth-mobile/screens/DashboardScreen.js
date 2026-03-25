@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, RefreshControl, ScrollView, Dimensions } from 'react-native';
+import { View, Text, ActivityIndicator, RefreshControl, ScrollView, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { PieChart } from 'react-native-chart-kit';
@@ -7,7 +7,7 @@ import { PieChart } from 'react-native-chart-kit';
 const screenWidth = Dimensions.get("window").width;
 
 export default function DashboardScreen() {
-  const [dashboardData, setDashboardData] = useState({ totalBalance: 0, accounts: [], income: 0, expense: 0, transactions: [] });
+  const [dashboardData, setDashboardData] = useState({ totalBalance: 0, accounts: [], income: 0, expense: 0, transactions: [], budgetAmount: 70000 }); // Assuming a default budget of 70k for now
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -27,9 +27,7 @@ export default function DashboardScreen() {
       const data = await response.json();
       
       if (response.ok) {
-        setDashboardData(data);
-      } else {
-        console.error("Failed to fetch:", data.error);
+        setDashboardData(prev => ({ ...prev, ...data }));
       }
     } catch (err) {
       console.error('Network Error:', err);
@@ -48,10 +46,47 @@ export default function DashboardScreen() {
     fetchDashboardData();
   };
 
-  // Process data for the Pie Chart
+  // NEW: Handle setting a new default account
+  const handleSetDefault = (accountId, accountName) => {
+    Alert.alert(
+      "Set Default Account",
+      `Make ${accountName} your default account?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Yes, Set Default", 
+          onPress: async () => {
+            try {
+              const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
+              const session = JSON.parse(storedSession);
+              
+              // Call your Next.js backend to update the default account
+              const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/accounts/default', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${session.token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ accountId })
+              });
+
+              if (response.ok) {
+                Alert.alert("Success", `${accountName} is now your default account.`);
+                onRefresh(); // Reload the dashboard to update the UI
+              } else {
+                Alert.alert("Error", "Failed to update default account.");
+              }
+            } catch (error) {
+              Alert.alert("Network Error", "Could not connect to server.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const getPieData = () => {
     if (!dashboardData.transactions) return [];
-    
     const expenses = dashboardData.transactions.filter(t => t.type === 'EXPENSE');
     if (expenses.length === 0) return [];
 
@@ -73,7 +108,6 @@ export default function DashboardScreen() {
   };
 
   const renderTransaction = ({ item }) => {
-    // FIX: Only check the exact type from Prisma!
     const isIncome = item.type === 'INCOME';
 
     return (
@@ -86,8 +120,9 @@ export default function DashboardScreen() {
             <Text className="text-white font-bold text-base" numberOfLines={1}>
               {item.name || item.description || 'Transaction'}
             </Text>
+            {/* NEW: Displaying the Account Name alongside the Category */}
             <Text className="text-zinc-400 text-sm mt-1 capitalize">
-              {item.category || 'General'}
+              {item.account?.name || 'Account'} • {item.category || 'General'}
             </Text>
           </View>
         </View>
@@ -107,6 +142,10 @@ export default function DashboardScreen() {
   }
 
   const pieData = getPieData();
+  // Budget calculation variables
+  const budgetLimit = dashboardData.budgetAmount || 70000;
+  const budgetSpent = dashboardData.expense || 0;
+  const budgetPercentage = Math.min((budgetSpent / budgetLimit) * 100, 100);
 
   return (
     <View className="flex-1 bg-zinc-900 px-4 pt-6">
@@ -119,29 +158,62 @@ export default function DashboardScreen() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
           
           {/* Default Account Card (Blue) */}
-          <View className="bg-blue-600 rounded-3xl p-6 mr-4 w-72 shadow-lg shadow-blue-500/30">
-            <View className="flex-row justify-between items-center mb-1">
-              <Text className="text-blue-200 text-sm font-medium uppercase tracking-wider">
-                {dashboardData.accounts?.[0]?.name || 'Main Account'}
-              </Text>
-              <View className="bg-blue-500/50 px-2 py-0.5 rounded">
-                <Text className="text-white text-[10px] font-bold uppercase tracking-wider">Default</Text>
+          <View className="bg-blue-600 rounded-3xl p-6 mr-4 w-72 shadow-lg shadow-blue-500/30 justify-between">
+            <View>
+              <View className="flex-row justify-between items-center mb-1">
+                <Text className="text-blue-200 text-sm font-medium uppercase tracking-wider">
+                  {dashboardData.accounts?.[0]?.name || 'Main Account'}
+                </Text>
+                <View className="bg-blue-500/50 px-2 py-0.5 rounded">
+                  <Text className="text-white text-[10px] font-bold uppercase tracking-wider">Default</Text>
+                </View>
               </View>
+              <Text className="text-white text-3xl font-bold">
+                LKR {Number(dashboardData.accounts?.[0]?.balance || 0).toFixed(2)}
+              </Text>
             </View>
-            <Text className="text-white text-3xl font-bold">
-              LKR {Number(dashboardData.accounts?.[0]?.balance || 0).toFixed(2)}
-            </Text>
           </View>
 
           {/* Other Accounts (Dark Grey) */}
           {dashboardData.accounts?.slice(1).map((account) => (
-            <View key={account.id} className="bg-zinc-800 rounded-3xl p-6 mr-4 w-64 border border-zinc-700/50">
-              <Text className="text-zinc-400 text-sm font-medium mb-1 uppercase tracking-wider">{account.name}</Text>
-              <Text className="text-white text-2xl font-bold">LKR {Number(account.balance).toFixed(2)}</Text>
+            <View key={account.id} className="bg-zinc-800 rounded-3xl p-6 mr-4 w-64 border border-zinc-700/50 justify-between">
+              <View>
+                <Text className="text-zinc-400 text-sm font-medium mb-1 uppercase tracking-wider">{account.name}</Text>
+                <Text className="text-white text-2xl font-bold">LKR {Number(account.balance).toFixed(2)}</Text>
+              </View>
+              
+              {/* NEW: Set Default Button */}
+              <TouchableOpacity 
+                className="mt-4 bg-zinc-700/50 py-2 rounded-xl items-center border border-zinc-600"
+                onPress={() => handleSetDefault(account.id, account.name)}
+              >
+                <Text className="text-zinc-300 text-xs font-bold uppercase tracking-wider">Set as Default</Text>
+              </TouchableOpacity>
             </View>
           ))}
-          
         </ScrollView>
+
+        {/* NEW: Monthly Budget Card */}
+        <View className="bg-zinc-800 rounded-3xl p-6 mb-6 border border-zinc-700/50">
+          <View className="flex-row justify-between items-center mb-2">
+            <Text className="text-white font-bold text-lg">Monthly Budget (Default)</Text>
+            <Ionicons name="pencil" size={18} color="#9ca3af" />
+          </View>
+          <Text className="text-zinc-400 text-sm mb-4">
+            LKR {budgetSpent.toFixed(2)} of LKR {budgetLimit.toFixed(2)} spent
+          </Text>
+          
+          {/* Progress Bar */}
+          <View className="h-3 w-full bg-zinc-700 rounded-full overflow-hidden">
+            <View 
+              className={`h-full rounded-full ${budgetPercentage > 90 ? 'bg-red-500' : 'bg-yellow-400'}`}
+              style={{ width: `${budgetPercentage}%` }} 
+            />
+          </View>
+          <Text className="text-zinc-500 text-xs text-right mt-2 font-medium">
+            {budgetPercentage.toFixed(1)}% used
+          </Text>
+        </View>
 
         {/* 2. Income / Expense Mini Cards */}
         <View className="flex-row justify-between mb-6">
@@ -168,7 +240,7 @@ export default function DashboardScreen() {
             <Text className="text-white font-bold text-lg mb-2 ml-2">Expense Breakdown</Text>
             <PieChart
               data={pieData}
-              width={screenWidth - 64} // Padding compensation
+              width={screenWidth - 64}
               height={160}
               chartConfig={{
                 color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
@@ -181,8 +253,13 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* 4. Recent Transactions List */}
-        <Text className="text-xl font-bold text-white mb-4 ml-1">Recent Transactions</Text>
+        {/* 4. Recent Transactions List (NEW: Limited to 5) */}
+        <View className="flex-row justify-between items-center mb-4 ml-1 pr-2">
+          <Text className="text-xl font-bold text-white">Recent Transactions</Text>
+          <TouchableOpacity>
+            <Text className="text-blue-400 text-sm font-bold">View All</Text>
+          </TouchableOpacity>
+        </View>
         
         {dashboardData.transactions?.length === 0 ? (
           <View className="py-10 items-center">
@@ -190,7 +267,8 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <View className="pb-10">
-            {dashboardData.transactions.map((item) => (
+            {/* .slice(0, 5) forces it to only ever render 5 transactions maximum */}
+            {dashboardData.transactions.slice(0, 5).map((item) => (
                <React.Fragment key={item.id}>
                  {renderTransaction({ item })}
                </React.Fragment>
