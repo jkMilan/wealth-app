@@ -1,30 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, ActivityIndicator, RefreshControl } from 'react-native';
-import { supabase } from '../supabase'; // Your database connection
+import { Ionicons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 
 export default function DashboardScreen() {
-  const [transactions, setTransactions] = useState([]);
+  const [dashboardData, setDashboardData] = useState({ balance: 0, income: 0, expense: 0, transactions: [] });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // The function that talks to Supabase
-  const fetchTransactions = async () => {
+  const fetchDashboardData = async () => {
     try {
-      // 1. Get the currently logged-in user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
+      if (!storedSession) return;
+      const session = JSON.parse(storedSession);
 
-      // 2. Fetch their data from the Prisma-generated 'transactions' table
-      const { data, error } = await supabase
-        .from('transactions')
-        .select('*')
-        // .eq('userId', user.id) // <- Uncomment this if your Prisma schema links transactions to users via userId
-        .order('createdAt', { ascending: false }); // Sorts by newest first
+      const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${session.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-      if (error) {
-        console.error('Database Error:', error);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setDashboardData(data);
       } else {
-        setTransactions(data);
+        console.error("Failed to fetch:", data.error);
       }
     } catch (err) {
       console.error('Network Error:', err);
@@ -34,47 +36,40 @@ export default function DashboardScreen() {
     }
   };
 
-  // Run the fetch function as soon as the screen loads
   useEffect(() => {
-    fetchTransactions();
+    fetchDashboardData();
   }, []);
 
-  // Handle the "Pull to Refresh" action
   const onRefresh = () => {
     setRefreshing(true);
-    fetchTransactions();
+    fetchDashboardData();
   };
 
-  // The design blueprint for a single transaction row
   const renderTransaction = ({ item }) => {
-    // Determine if it's income or an expense to color the text red/green
-    // (Adjust this logic if your Prisma schema uses a 'type' column instead of positive/negative amounts)
-    const isIncome = item.amount > 0; 
+    const isIncome = item.type === 'INCOME' || item.amount > 0;
 
     return (
-      <View className="flex-row justify-between items-center bg-zinc-800 p-4 mb-3 rounded-2xl shadow-sm">
-        <View className="flex-1 pr-4">
-          <Text className="text-white font-bold text-base" numberOfLines={1}>
-            {item.description || 'Unknown Merchant'}
-          </Text>
-          <Text className="text-zinc-400 text-sm mt-1">
-            {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
+      <View className="flex-row justify-between items-center bg-zinc-800 p-4 mb-3 rounded-2xl shadow-sm border border-zinc-700/50">
+        <View className="flex-row items-center flex-1">
+          <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${isIncome ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+            <Ionicons name={isIncome ? 'arrow-down' : 'arrow-up'} size={20} color={isIncome ? '#4ade80' : '#f87171'} />
+          </View>
+          <View className="flex-1 pr-4">
+            <Text className="text-white font-bold text-base" numberOfLines={1}>
+              {item.name || item.description || 'Transaction'}
+            </Text>
+            <Text className="text-zinc-400 text-sm mt-1 capitalize">
+              {item.category || 'General'}
+            </Text>
+          </View>
         </View>
-        
-        <View className="items-end">
-          <Text className={`font-bold text-lg ${isIncome ? 'text-green-400' : 'text-red-400'}`}>
-            {isIncome ? '+' : ''}LKR {Math.abs(item.amount).toFixed(2)}
-          </Text>
-          <Text className="text-zinc-500 text-xs mt-1 capitalize">
-            {item.category || 'General'}
-          </Text>
-        </View>
+        <Text className={`font-bold text-lg ${isIncome ? 'text-green-400' : 'text-red-400'}`}>
+          {isIncome ? '+' : '-'}LKR {Math.abs(item.amount).toFixed(2)}
+        </Text>
       </View>
     );
   };
 
-  // Show a blue loading spinner while fetching data
   if (loading) {
     return (
       <View className="flex-1 bg-zinc-900 justify-center items-center">
@@ -85,24 +80,47 @@ export default function DashboardScreen() {
 
   return (
     <View className="flex-1 bg-zinc-900 px-4 pt-6">
-      <Text className="text-3xl font-bold text-white mb-6">Recent Transactions</Text>
       
-      {transactions.length === 0 ? (
+      {/* 1. Total Balance Card */}
+      <View className="bg-zinc-800 rounded-3xl p-6 mb-4 border border-zinc-700/50">
+        <Text className="text-zinc-400 text-sm font-medium mb-1">Total Balance</Text>
+        <Text className="text-white text-4xl font-bold">LKR {dashboardData.balance.toFixed(2)}</Text>
+      </View>
+
+      {/* 2. Income / Expense Mini Cards */}
+      <View className="flex-row justify-between mb-8">
+        <View className="bg-zinc-800 rounded-2xl p-4 flex-1 mr-2 border border-zinc-700/50">
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="trending-up" size={16} color="#4ade80" />
+            <Text className="text-zinc-400 text-xs ml-2">Income</Text>
+          </View>
+          <Text className="text-green-400 text-xl font-bold">LKR {dashboardData.income.toFixed(2)}</Text>
+        </View>
+
+        <View className="bg-zinc-800 rounded-2xl p-4 flex-1 ml-2 border border-zinc-700/50">
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="trending-down" size={16} color="#f87171" />
+            <Text className="text-zinc-400 text-xs ml-2">Expenses</Text>
+          </View>
+          <Text className="text-red-400 text-xl font-bold">LKR {dashboardData.expense.toFixed(2)}</Text>
+        </View>
+      </View>
+
+      {/* 3. Recent Transactions List */}
+      <Text className="text-xl font-bold text-white mb-4">Recent Transactions</Text>
+      
+      {dashboardData.transactions.length === 0 ? (
         <View className="flex-1 justify-center items-center">
           <Text className="text-zinc-500 text-lg">No transactions yet.</Text>
         </View>
       ) : (
         <FlatList
-          data={transactions}
+          data={dashboardData.transactions}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderTransaction}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh} 
-              tintColor="#3b82f6" 
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
           }
           contentContainerStyle={{ paddingBottom: 30 }}
         />

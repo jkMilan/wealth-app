@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
 export default function LogExpenseScreen() {
   const [expense, setExpense] = useState('');
@@ -12,20 +13,31 @@ export default function LogExpenseScreen() {
     setStatus('Sending to AWS Brain...');
 
     try {
+      const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
+      if (!storedSession) {
+        setStatus('❌ You are not logged in!');
+        setLoading(false);
+        return;
+      }
+      
+      const session = JSON.parse(storedSession);
+
       const response = await fetch('https://wealth-app-three.vercel.app/api/ingest/sms', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.token}`
+        },
         body: JSON.stringify({
           message: expense,
-          sender: '+1234567890', 
-          secretKey: 'Milan2908' 
+          sender: '+1234567890'
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setStatus('✅ Successfully logged in database!');
+        setStatus(`✅ Logged ${data.type}: LKR ${data.parsedAmount}`);
         setExpense('');
       } else {
         setStatus(`❌ Error: ${data.error || 'Failed to process'}`);
@@ -38,17 +50,14 @@ export default function LogExpenseScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 items-center justify-center bg-zinc-900 p-6"
-    >
-      <View className="w-full max-w-sm p-6 bg-zinc-800 rounded-3xl shadow-lg items-center">
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 items-center justify-center bg-zinc-900 p-6">
+      <View className="w-full max-w-sm p-6 bg-zinc-800 rounded-3xl shadow-lg items-center border border-zinc-700/50">
         <Text className="text-3xl font-bold text-white mb-2">Wealth AI</Text>
         <Text className="text-zinc-400 mb-8 text-center">Mobile connection established.</Text>
 
         <TextInput
-          className="w-full bg-zinc-700 text-white px-4 py-4 rounded-xl mb-4 text-lg"
-          placeholder="e.g. Spent LKR 1500 on Lunch"
+          className="w-full bg-zinc-700 text-white px-4 py-4 rounded-xl mb-4 text-lg border border-zinc-600 focus:border-blue-500"
+          placeholder="e.g. Spent $15 on Starbucks"
           placeholderTextColor="#9ca3af"
           value={expense}
           onChangeText={setExpense}
@@ -67,7 +76,7 @@ export default function LogExpenseScreen() {
         </TouchableOpacity>
 
         {status ? (
-          <Text className={`mt-2 font-medium ${status.includes('❌') ? 'text-red-400' : 'text-green-400'}`}>
+          <Text className={`mt-2 font-medium text-center ${status.includes('❌') ? 'text-red-400' : 'text-green-400'}`}>
             {status}
           </Text>
         ) : null}
