@@ -7,7 +7,7 @@ import { PieChart } from 'react-native-chart-kit';
 const screenWidth = Dimensions.get("window").width;
 
 export default function DashboardScreen() {
-  const [dashboardData, setDashboardData] = useState({ totalBalance: 0, accounts: [], income: 0, expense: 0, transactions: [], budgetAmount: 70000 }); // Assuming a default budget of 70k for now
+  const [dashboardData, setDashboardData] = useState({ totalBalance: 0, accounts: [], income: 0, expense: 0, transactions: [], budgetAmount: 70000 }); 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -46,7 +46,6 @@ export default function DashboardScreen() {
     fetchDashboardData();
   };
 
-  // NEW: Handle setting a new default account
   const handleSetDefault = (accountId, accountName) => {
     Alert.alert(
       "Set Default Account",
@@ -60,7 +59,6 @@ export default function DashboardScreen() {
               const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
               const session = JSON.parse(storedSession);
               
-              // Call your Next.js backend to update the default account
               const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/accounts/default', {
                 method: 'POST',
                 headers: {
@@ -72,7 +70,7 @@ export default function DashboardScreen() {
 
               if (response.ok) {
                 Alert.alert("Success", `${accountName} is now your default account.`);
-                onRefresh(); // Reload the dashboard to update the UI
+                onRefresh(); 
               } else {
                 Alert.alert("Error", "Failed to update default account.");
               }
@@ -120,7 +118,6 @@ export default function DashboardScreen() {
             <Text className="text-white font-bold text-base" numberOfLines={1}>
               {item.name || item.description || 'Transaction'}
             </Text>
-            {/* NEW: Displaying the Account Name alongside the Category */}
             <Text className="text-zinc-400 text-sm mt-1 capitalize">
               {item.account?.name || 'Account'} • {item.category || 'General'}
             </Text>
@@ -142,7 +139,6 @@ export default function DashboardScreen() {
   }
 
   const pieData = getPieData();
-  // Budget calculation variables
   const budgetLimit = dashboardData.budgetAmount || 70000;
   const budgetSpent = dashboardData.expense || 0;
   const budgetPercentage = Math.min((budgetSpent / budgetLimit) * 100, 100);
@@ -154,10 +150,8 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}
       >
-        {/* 1. Account Cards Carousel */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
           
-          {/* Default Account Card (Blue) */}
           <View className="bg-blue-600 rounded-3xl p-6 mr-4 w-72 shadow-lg shadow-blue-500/30 justify-between">
             <View>
               <View className="flex-row justify-between items-center mb-1">
@@ -174,7 +168,6 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          {/* Other Accounts (Dark Grey) */}
           {dashboardData.accounts?.slice(1).map((account) => (
             <View key={account.id} className="bg-zinc-800 rounded-3xl p-6 mr-4 w-64 border border-zinc-700/50 justify-between">
               <View>
@@ -182,7 +175,6 @@ export default function DashboardScreen() {
                 <Text className="text-white text-2xl font-bold">LKR {Number(account.balance).toFixed(2)}</Text>
               </View>
               
-              {/* NEW: Set Default Button */}
               <TouchableOpacity 
                 className="mt-4 bg-zinc-700/50 py-2 rounded-xl items-center border border-zinc-600"
                 onPress={() => handleSetDefault(account.id, account.name)}
@@ -193,7 +185,6 @@ export default function DashboardScreen() {
           ))}
         </ScrollView>
 
-        {/* NEW: Monthly Budget Card */}
         <View className="bg-zinc-800 rounded-3xl p-6 mb-6 border border-zinc-700/50">
           <View className="flex-row justify-between items-center mb-2">
             <Text className="text-white font-bold text-lg">Monthly Budget (Default)</Text>
@@ -203,7 +194,6 @@ export default function DashboardScreen() {
             LKR {budgetSpent.toFixed(2)} of LKR {budgetLimit.toFixed(2)} spent
           </Text>
           
-          {/* Progress Bar */}
           <View className="h-3 w-full bg-zinc-700 rounded-full overflow-hidden">
             <View 
               className={`h-full rounded-full ${budgetPercentage > 90 ? 'bg-red-500' : 'bg-yellow-400'}`}
@@ -215,7 +205,6 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        {/* 2. Income / Expense Mini Cards */}
         <View className="flex-row justify-between mb-6">
           <View className="bg-zinc-800 rounded-2xl p-4 flex-1 mr-2 border border-zinc-700/50">
             <View className="flex-row items-center mb-2">
@@ -234,7 +223,6 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* 3. Expense Breakdown Chart */}
         {pieData.length > 0 && (
           <View className="bg-zinc-800 rounded-3xl p-4 mb-6 border border-zinc-700/50">
             <Text className="text-white font-bold text-lg mb-2 ml-2">Expense Breakdown</Text>
@@ -253,7 +241,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* 4. Recent Transactions List (NEW: Limited to 5) */}
         <View className="flex-row justify-between items-center mb-4 ml-1 pr-2">
           <Text className="text-xl font-bold text-white">Recent Transactions</Text>
           <TouchableOpacity>
@@ -267,7 +254,6 @@ export default function DashboardScreen() {
           </View>
         ) : (
           <View className="pb-10">
-            {/* .slice(0, 5) forces it to only ever render 5 transactions maximum */}
             {dashboardData.transactions.slice(0, 5).map((item) => (
                <React.Fragment key={item.id}>
                  {renderTransaction({ item })}

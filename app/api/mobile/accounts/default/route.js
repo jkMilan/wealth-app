@@ -14,13 +14,11 @@ export async function POST(req) {
     const body = await req.json();
     const { accountId } = body;
 
-    // Remove the default status from the user's current default account
     await db.account.updateMany({
       where: { userId: payload.userId, isDefault: true },
       data: { isDefault: false },
     });
 
-    // Set the new account as the default
     await db.account.update({
       where: { id: accountId, userId: payload.userId },
       data: { isDefault: true }

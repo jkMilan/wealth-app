@@ -15,7 +15,6 @@ export default function SubscriptionsScreen() {
       if (!storedSession) return;
       const session = JSON.parse(storedSession);
 
-      // Pointing to a new mobile endpoint you'll need to create!
       const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/subscriptions', {
         headers: {
           'Authorization': `Bearer ${session.token}`,
@@ -27,11 +26,9 @@ export default function SubscriptionsScreen() {
         const data = await response.json();
         setSubscriptions(data.subscriptions || []);
         
-        // Calculate total monthly spend from the data
         const total = (data.subscriptions || []).reduce((sum, sub) => sum + Number(sub.amount), 0);
         setTotalMonthly(total);
       } else {
-        // If the API isn't built yet, we won't crash, we'll just show empty state
         console.log("Subscription API not ready yet.");
       }
     } catch (err) {
@@ -91,7 +88,6 @@ export default function SubscriptionsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Total Monthly Spend Card */}
       <View className="bg-indigo-600/10 rounded-3xl p-6 mb-6 border border-indigo-500/20 items-center">
         <Text className="text-indigo-300 text-sm font-medium mb-1 uppercase tracking-wider">Total Monthly Spend</Text>
         <Text className="text-white text-3xl font-bold">LKR {totalMonthly.toFixed(2)}</Text>

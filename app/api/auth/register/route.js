@@ -1,4 +1,3 @@
-// app/api/auth/register/route.js
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import bcrypt from "bcryptjs";

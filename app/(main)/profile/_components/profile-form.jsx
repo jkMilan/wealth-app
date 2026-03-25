@@ -13,7 +13,6 @@ export default function ProfileForm({ user }) {
   const [imageUrl, setImageUrl] = useState(user?.imageUrl || "");
   const [loading, setLoading] = useState(false);
   
-  // Reference to our hidden file input
   const fileInputRef = useRef(null);
 
   const getInitials = (nameStr) => {
@@ -21,7 +20,6 @@ export default function ProfileForm({ user }) {
     return nameStr.split(" ").map((n) => n[0]).join("").toUpperCase().substring(0, 2);
   };
 
-  // Handle Image Selection
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -109,7 +107,7 @@ export default function ProfileForm({ user }) {
       </div>
       </div>
 
-        {/* Optional: A small "Cancel" button if they uploaded an image but haven't saved yet */}
+        {/* Cancel button if they uploaded an image */}
         {imageUrl !== user?.imageUrl && imageUrl && (
           <Button 
             type="button" 

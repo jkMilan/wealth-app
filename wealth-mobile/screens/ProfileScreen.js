@@ -9,14 +9,12 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
 
-  // Load the user's current info from the saved session
   useEffect(() => {
     async function loadUserData() {
       try {
         const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
         if (storedSession) {
           const session = JSON.parse(storedSession);
-          // Fallbacks in case the session doesn't contain the exact fields yet
           setName(session.user?.name || 'JKMilan'); 
           setEmail(session.user?.email || 'jeyakumarmilan@gmail.com');
         }
@@ -31,12 +29,10 @@ export default function ProfileScreen() {
 
   const handleSave = async () => {
     setLoading(true);
-    // TODO: You will need to create a PUT /api/mobile/profile endpoint on Vercel
-    // to actually save this data to your Prisma database!
     setTimeout(() => {
       setLoading(false);
       Alert.alert("Success", "Profile updated successfully!");
-    }, 1000); // Simulated network delay
+    }, 1000); 
   };
 
   const handleLogout = async () => {
@@ -49,9 +45,7 @@ export default function ProfileScreen() {
           text: "Log Out", 
           style: "destructive",
           onPress: async () => {
-            // We delete the token, and App.js will automatically kick us back to AuthScreen
             await SecureStore.deleteItemAsync('wealth_ai_session');
-            // A tiny hack to force a reload if state doesn't catch it immediately:
             Alert.alert("Logged Out", "Please restart the app to clear session."); 
           }
         }
@@ -71,13 +65,10 @@ export default function ProfileScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-zinc-900">
       <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 40 }}>
         
-        {/* Header */}
         <Text className="text-2xl font-bold text-white mb-6">Account Settings</Text>
 
-        {/* Profile Card */}
         <View className="bg-zinc-800 rounded-3xl p-6 border border-zinc-700/50 mb-6 items-center shadow-sm">
           
-          {/* Avatar Component */}
           <View className="relative mb-6">
             <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center border-4 border-zinc-800 shadow-md">
               <Text className="text-blue-600 text-4xl font-bold">{name.charAt(0).toUpperCase()}</Text>
@@ -90,7 +81,6 @@ export default function ProfileScreen() {
           <Text className="text-white text-xl font-bold mb-1">{name}</Text>
           <Text className="text-zinc-400 text-sm mb-6">{email}</Text>
 
-          {/* Input Fields */}
           <View className="w-full mb-4">
             <Text className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Full Name</Text>
             <TextInput
@@ -115,7 +105,6 @@ export default function ProfileScreen() {
             />
           </View>
 
-          {/* Save Button */}
           <TouchableOpacity 
             className="w-full bg-blue-600 py-4 rounded-xl items-center shadow-lg shadow-blue-500/30"
             onPress={handleSave}
@@ -129,7 +118,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Danger Zone / Extra Settings */}
         <View className="bg-zinc-800 rounded-3xl p-4 border border-zinc-700/50">
           <TouchableOpacity 
             className="flex-row items-center justify-between p-4"

@@ -3,7 +3,6 @@ import { db } from "@/lib/prisma";
 
 export async function POST(req) {
   try {
-    // 1. Fetch all due recurring transactions
     const recurringTransactions = await db.transaction.findMany({
       where: {
         isRecurring: true,
@@ -21,10 +20,8 @@ export async function POST(req) {
 
     let processedCount = 0;
 
-    // 2. Process each transaction
     for (const transaction of recurringTransactions) {
       await db.$transaction(async (tx) => {
-        // Create new transaction
         await tx.transaction.create({
           data: {
             type: transaction.type,
@@ -38,7 +35,6 @@ export async function POST(req) {
           },
         });
 
-        // Update account balance
         const balanceChange =
           transaction.type === "EXPENSE"
             ? -transaction.amount.toNumber()
@@ -49,7 +45,6 @@ export async function POST(req) {
           data: { balance: { increment: balanceChange } },
         });
 
-        // Update last processed data and next recurring data
         await tx.transaction.update({
           where: { id: transaction.id },
           data: {

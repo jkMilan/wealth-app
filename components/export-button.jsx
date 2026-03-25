@@ -16,7 +16,6 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 
 const ExportButton = ({ transactions, accountName = "Account" }) => {
-    // --- CSV EXPORT LOGIC ---
     const handleExportCSV = () => {
         if (!transactions || transactions.length === 0) {
             alert("No transactions to export!");
@@ -49,7 +48,6 @@ const ExportButton = ({ transactions, accountName = "Account" }) => {
         document.body.removeChild(link);
     };
 
-    // --- PDF EXPORT LOGIC ---
     const handleExportPDF = () => {
         if (!transactions || transactions.length === 0) {
             alert("No transactions to export!");
@@ -59,7 +57,6 @@ const ExportButton = ({ transactions, accountName = "Account" }) => {
         const doc = new jsPDF();
         const dateString = format(new Date(), "yyyy-MM-dd");
 
-        // Add Header text
         doc.setFontSize(18);
         doc.text(`Wealth AI - Statement`, 14, 22);
         doc.setFontSize(12);
@@ -67,7 +64,6 @@ const ExportButton = ({ transactions, accountName = "Account" }) => {
         doc.text(`Account: ${accountName}`, 14, 30);
         doc.text(`Generated: ${dateString}`, 14, 36);
 
-        // Define Table Columns and Rows
         const tableColumn = ["Date", "Description", "Category", "Type", "Amount (LKR)"];
         const tableRows = [];
 
@@ -77,22 +73,20 @@ const ExportButton = ({ transactions, accountName = "Account" }) => {
                 t.description || "Untitled",
                 t.category || "Uncategorized",
                 t.type,
-                parseFloat(t.amount).toFixed(2), // Ensure decimals look clean
+                parseFloat(t.amount).toFixed(2), 
             ];
             tableRows.push(transactionData);
         });
 
-        // Generate the auto-table
         doc.autoTable({
             head: [tableColumn],
             body: tableRows,
             startY: 45,
             styles: { fontSize: 10 },
-            headStyles: { fillColor: [63, 81, 181] }, // A nice blue header
-            alternateRowStyles: { fillColor: [245, 247, 250] } // Light gray alternating rows
+            headStyles: { fillColor: [63, 81, 181] }, 
+            alternateRowStyles: { fillColor: [245, 247, 250] } 
         });
 
-        // Save the PDF
         doc.save(`WealthAI_${accountName.replace(/\s+/g, '_')}_${dateString}.pdf`);
     };
 

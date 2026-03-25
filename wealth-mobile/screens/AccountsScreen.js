@@ -14,7 +14,6 @@ export default function AccountsScreen() {
       if (!storedSession) return;
       const session = JSON.parse(storedSession);
 
-      // We reuse the dashboard endpoint since it now returns the full accounts array!
       const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/dashboard', {
         headers: {
           'Authorization': `Bearer ${session.token}`,

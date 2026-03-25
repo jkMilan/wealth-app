@@ -30,7 +30,7 @@ export default function SignUpPage() {
       if (res.ok) {
         toast.success("Account created successfully!");
         router.push("/dashboard");
-        router.refresh(); // Refresh to update the Header UI
+        router.refresh();
       } else {
         toast.error(data.error || "Failed to create account");
       }

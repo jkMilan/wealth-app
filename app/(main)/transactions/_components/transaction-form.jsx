@@ -95,7 +95,6 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
             if (scannedData.description) setValue("description", scannedData.description);
             
             if (scannedData.category) {
-                // Find matching category by name, ignoring case
                 const matchedCategory = categories.find(
                     (c) => c.name.toLowerCase() === scannedData.category.toLowerCase() || 
                            c.id === scannedData.category
@@ -113,7 +112,6 @@ const AddTransactionForm = ({ accounts, categories, editMode = false, initialDat
     if (!mounted) return null;
 
     return <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-        {/* AI Recipt Scanner */}
         {!editMode && <ReceiptScanner onScanComplete={handleScanComplete} />}
 
         <div className="space-y-2">

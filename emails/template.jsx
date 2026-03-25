@@ -31,7 +31,6 @@ export default function EmailTemplate({
   data = {},
 }) {
   
-  // SHARED UI WRAPPER
   const EmailWrapper = ({ previewText, children }) => (
     <Html>
       <Head />
@@ -64,7 +63,6 @@ export default function EmailTemplate({
     </Html>
   );
 
-  // 1. MONTHLY REPORT TEMPLATE
   if (type === "monthly-report") {
     return (
       <EmailWrapper previewText="Your Monthly Financial Report">
@@ -112,7 +110,6 @@ export default function EmailTemplate({
     );
   }
 
-  // 2. BUDGET ALERT TEMPLATE
   if (type === "budget-alert") {
     return (
       <EmailWrapper previewText="Budget Alert">

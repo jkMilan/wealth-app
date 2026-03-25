@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store'; // We use this to save the NextAuth token!
+import * as SecureStore from 'expo-secure-store'; 
 
 export default function AuthScreen() {
   const [email, setEmail] = useState('');

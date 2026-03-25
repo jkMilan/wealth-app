@@ -14,7 +14,6 @@ export async function POST(req) {
     const body = await req.json();
     const { type, amount, accountId, category, date, description, isRecurring } = body;
 
-    // 1. Create the Transaction
     const transaction = await db.transaction.create({
       data: {
         userId: payload.userId,
@@ -29,7 +28,6 @@ export async function POST(req) {
       }
     });
 
-    // 2. Update the Account Balance
     const balanceChange = type === "EXPENSE" ? -amount : amount;
     await db.account.update({
       where: { id: accountId },

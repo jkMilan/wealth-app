@@ -18,17 +18,14 @@ const serializeTransaction = (obj) => {
 
 export async function createAccount(data) {
     try {
-        // checkUser() now returns the actual database user directly!
         const user = await checkUser();
         if (!user) throw new Error("Unauthorized");
 
-        // Convert balance to float before saving
         const balanceFloat = parseFloat(data.balance);
         if (isNaN(balanceFloat)) {
             throw new Error("Invalid balance amount");
         }
 
-        // Check if this is the user's first account
         const existingAccounts = await db.account.findMany({
             where: { userId: user.id },
         });
@@ -61,7 +58,6 @@ export async function createAccount(data) {
 }
 
 export async function getUserAccounts() {
-    // Replaced auth() with our custom checkUser()
     const user = await checkUser();
     if (!user) throw new Error("Unauthorized");
 
@@ -85,11 +81,9 @@ export async function getUserAccounts() {
 }
 
 export async function getDashboardData() {
-    // Replaced auth() with our custom checkUser()
     const user = await checkUser();
     if (!user) throw new Error("Unauthorized");
 
-    // Get all user transactions using the user.id
     const transactions = await db.transaction.findMany({
         where: { userId: user.id },
         orderBy: { date: "desc" },

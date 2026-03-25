@@ -5,16 +5,14 @@ import { format, differenceInDays } from "date-fns";
 import { CalendarClock, CreditCard, AlertCircle } from "lucide-react";
 
 export default async function SubscriptionsPage() {
-    // 1. Authenticate the user
     const user = await checkUser();
     if (!user) return <div>Unauthorized</div>;
 
-    // 2. Fetch only the recurring transactions, sorted by the closest upcoming date
     const subscriptions = await db.transaction.findMany({
         where: {
             userId: user.id,
             isRecurring: true,
-            type: "EXPENSE", // Assuming bills are expenses
+            type: "EXPENSE", 
         },
         orderBy: {
             nextRecurringDate: "asc",
@@ -43,17 +41,14 @@ export default async function SubscriptionsPage() {
             ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {subscriptions.map((sub) => {
-                        // Calculate how many days until the bill is due
                         const nextDate = new Date(sub.nextRecurringDate);
                         const daysUntilDue = differenceInDays(nextDate, today);
                         
-                        // Determine urgency colors
                         const isUrgent = daysUntilDue <= 3 && daysUntilDue >= 0;
                         const isOverdue = daysUntilDue < 0;
 
                         return (
                             <Card key={sub.id} className={`relative overflow-hidden ${isUrgent ? 'border-orange-200 bg-orange-50/50' : ''}`}>
-                                {/* Optional color strip on the left edge based on interval */}
                                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${
                                     sub.recurringInterval === 'MONTHLY' ? 'bg-blue-500' : 
                                     sub.recurringInterval === 'YEARLY' ? 'bg-purple-500' : 'bg-gray-300'

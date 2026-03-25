@@ -15,7 +15,6 @@ const DashboardOverview = ({accounts, transactions}) => {
         accounts.find((a) => a.isDefault)?.id || accounts[0]?.id
     );
 
-    //Filter transactions for selected account
     const accountTransactions = transactions.filter(
         (t) => t.accountId === selectedAccountId
     );
@@ -24,7 +23,6 @@ const DashboardOverview = ({accounts, transactions}) => {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5);
 
-    // Calculate expense breakdown for current month
     const currentDate = new Date();
     const currentMonthExpenses = accountTransactions.filter((t) => {
         const transactionDate = new Date(t.date);
@@ -35,7 +33,6 @@ const DashboardOverview = ({accounts, transactions}) => {
         );
     });
 
-    // Group expenses by category
     const expenseByCategory = currentMonthExpenses.reduce((acc, transaction) => {
         const category = transaction.category;
         if (!acc[category]) {
@@ -45,7 +42,6 @@ const DashboardOverview = ({accounts, transactions}) => {
         return acc;
     }, {});
 
-    // Format data for Pie Chart
     const pieChartData = Object.entries(expenseByCategory).map(
         ([category, amount]) => ({
             name: category,

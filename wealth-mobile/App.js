@@ -14,8 +14,6 @@ import ProfileScreen from './screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
-// --- PLACEHOLDER SCREENS ---
-// We will use these so the app runs while you build the actual screens later!
 const PlaceholderScreen = ({ title }) => (
   <View className="flex-1 bg-zinc-900 items-center justify-center p-6">
     <Ionicons name="construct-outline" size={64} color="#71717a" className="mb-4" />
@@ -60,12 +58,12 @@ export default function App() {
     <NavigationContainer>
       <Tab.Navigator
         screenOptions={{
-          tabBarActiveTintColor: '#3b82f6', // Bright Blue for active
-          tabBarInactiveTintColor: '#71717a', // Zinc-500 for inactive
+          tabBarActiveTintColor: '#3b82f6', 
+          tabBarInactiveTintColor: '#71717a', 
           tabBarStyle: { 
-            backgroundColor: '#18181b', // Zinc-900
+            backgroundColor: '#18181b', 
             borderTopWidth: 1,
-            borderTopColor: '#27272a', // Zinc-800
+            borderTopColor: '#27272a', 
             paddingBottom: 8,
             paddingTop: 8,
             height: 65,
@@ -103,7 +101,7 @@ export default function App() {
           name="Add" 
           component={LogExpenseScreen} 
           options={{
-            tabBarLabel: () => null, // Hide the text label to make it purely a button
+            tabBarLabel: () => null,
             headerTitle: "Add Transaction",
             tabBarIcon: ({ focused }) => (
               <View style={{
@@ -113,12 +111,12 @@ export default function App() {
                 backgroundColor: '#3b82f6',
                 justifyContent: 'center',
                 alignItems: 'center',
-                marginBottom: 25, // This forces the button to "float" above the tab bar
+                marginBottom: 25, 
                 shadowColor: '#3b82f6',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.4,
                 shadowRadius: 5,
-                elevation: 5, // For Android shadow
+                elevation: 5, 
               }}>
                 <Ionicons name="scan" size={28} color="#ffffff" />
               </View>

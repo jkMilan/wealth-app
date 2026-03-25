@@ -3,7 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Switch, ActivityIn
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 
-// Hardcoded categories matching your web app
 const CATEGORIES = [
   { id: 'housing', label: 'Housing' },
   { id: 'transportation', label: 'Transportation' },
@@ -19,18 +18,16 @@ export default function LogExpenseScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [accounts, setAccounts] = useState([]);
   
-  // Form State
-  const [type, setType] = useState('EXPENSE'); // 'EXPENSE' or 'INCOME'
+  const [type, setType] = useState('EXPENSE'); 
   const [amount, setAmount] = useState('');
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // YYYY-MM-DD
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]); 
   const [description, setDescription] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
 
-  // Modal State for custom dropdowns
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalType, setModalType] = useState(null); // 'account' or 'category'
+  const [modalType, setModalType] = useState(null); 
 
   useEffect(() => {
     fetchAccounts();
@@ -48,7 +45,6 @@ export default function LogExpenseScreen({ navigation }) {
       const data = await response.json();
       if (response.ok && data.accounts) {
         setAccounts(data.accounts);
-        // Auto-select the default account
         const defaultAcc = data.accounts.find(a => a.isDefault) || data.accounts[0];
         if (defaultAcc) setSelectedAccount(defaultAcc);
       }
@@ -88,7 +84,6 @@ export default function LogExpenseScreen({ navigation }) {
       if (response.ok) {
         Alert.alert("Success", "Transaction added successfully!", [
           { text: "OK", onPress: () => {
-            // Reset form and go to dashboard
             setAmount('');
             setDescription('');
             navigation.navigate('Dashboard'); 
@@ -114,13 +109,10 @@ export default function LogExpenseScreen({ navigation }) {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-zinc-900">
       <ScrollView className="flex-1 px-4 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
         
-        {/* Web-Style Pink AI Button */}
         <TouchableOpacity className="w-full bg-pink-500 py-4 rounded-xl flex-row justify-center items-center mb-6 shadow-lg shadow-pink-500/30">
           <Ionicons name="camera-outline" size={24} color="white" className="mr-2" />
           <Text className="text-white font-bold text-lg ml-2">Scan Receipt with AI</Text>
         </TouchableOpacity>
-
-        {/* Type Segmented Control */}
         <View className="flex-row bg-zinc-800 p-1 rounded-xl mb-6 border border-zinc-700/50">
           <TouchableOpacity 
             className={`flex-1 py-3 rounded-lg items-center ${type === 'EXPENSE' ? 'bg-zinc-700 shadow-sm' : ''}`}
@@ -136,7 +128,6 @@ export default function LogExpenseScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Amount */}
         <View className="mb-4">
           <Text className="text-zinc-400 text-xs font-bold uppercase mb-2 ml-1">Amount</Text>
           <TextInput
@@ -149,7 +140,6 @@ export default function LogExpenseScreen({ navigation }) {
           />
         </View>
 
-        {/* Account Selector */}
         <View className="mb-4">
           <Text className="text-zinc-400 text-xs font-bold uppercase mb-2 ml-1">Account</Text>
           <TouchableOpacity 
@@ -161,7 +151,6 @@ export default function LogExpenseScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Category Selector */}
         <View className="mb-4">
           <Text className="text-zinc-400 text-xs font-bold uppercase mb-2 ml-1">Category</Text>
           <TouchableOpacity 
@@ -173,7 +162,6 @@ export default function LogExpenseScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Date (Simple text input for now, YYYY-MM-DD) */}
         <View className="mb-4">
           <Text className="text-zinc-400 text-xs font-bold uppercase mb-2 ml-1">Date (YYYY-MM-DD)</Text>
           <TextInput
@@ -184,7 +172,6 @@ export default function LogExpenseScreen({ navigation }) {
           />
         </View>
 
-        {/* Description */}
         <View className="mb-6">
           <Text className="text-zinc-400 text-xs font-bold uppercase mb-2 ml-1">Description</Text>
           <TextInput
@@ -196,7 +183,6 @@ export default function LogExpenseScreen({ navigation }) {
           />
         </View>
 
-        {/* Recurring Toggle Container */}
         <View className="bg-zinc-800 p-4 rounded-xl border border-zinc-700/50 flex-row justify-between items-center mb-8">
           <View>
             <Text className="text-white font-bold text-base mb-1">Recurring Transaction</Text>
@@ -210,7 +196,6 @@ export default function LogExpenseScreen({ navigation }) {
           />
         </View>
 
-        {/* Submit Buttons */}
         <View className="flex-row justify-between mb-8">
           <TouchableOpacity 
             className="flex-1 bg-zinc-800 py-4 rounded-xl items-center border border-zinc-700 mr-2"
@@ -230,7 +215,6 @@ export default function LogExpenseScreen({ navigation }) {
 
       </ScrollView>
 
-      {/* Custom Bottom Sheet Modal for Selectors */}
       <Modal visible={modalVisible} transparent={true} animationType="slide">
         <View className="flex-1 justify-end bg-black/60">
           <View className="bg-zinc-900 rounded-t-3xl p-6 min-h-[50%] border-t border-zinc-700">

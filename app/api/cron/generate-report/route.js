@@ -43,7 +43,6 @@ export async function POST(req) {
   }
 }
 
-// Include your existing getMonthlyStats and generateFinancialInsights helper functions here
 const getMonthlyStats = async (userId, month) => { 
   const startDate = new Date(month.getFullYear(), month.getMonth(), 1);
   const endDate = new Date(month.getFullYear(), month.getMonth() + 1, 0);
