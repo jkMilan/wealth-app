@@ -12,7 +12,7 @@ import useFetch from '@/hooks/use-fetch';
 import { updateBudget } from '@/actions/budget';
 import { toast } from 'sonner';
 
-const BudgetProgress = ({ initialBudget, currentExpanses }) => {
+const BudgetProgress = ({ initialBudget, currentExpanses, accountId }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [newBudget, setNewBudget] = useState(
         initialBudget?.amount?.toString() || ""
@@ -37,7 +37,7 @@ const BudgetProgress = ({ initialBudget, currentExpanses }) => {
             return;
         }
 
-        await updateBudgetFn(amount);
+        await updateBudgetFn(accountId, amount);
     };
 
     useEffect(() => {

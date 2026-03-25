@@ -50,6 +50,7 @@ async function DashboardPage() {
         <BudgetProgress 
           initialBudget={budgetData?.budget}
           currentExpanses={budgetData?.currentExpanses || 0}
+          accountId={defaultAccount.id}
         />
       )}
 
