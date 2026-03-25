@@ -34,7 +34,17 @@ export default function LogExpenseScreen() {
         }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      console.log("VERCEL RAW RESPONSE: ", rawText);
+
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (parseError) {
+        setStatus(`❌ Vercel returned HTML! Check Terminal.`);
+        setLoading(false);
+        return;
+      }
 
       if (response.ok) {
         setStatus(`✅ Logged ${data.type}: LKR ${data.parsedAmount}`);
