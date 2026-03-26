@@ -13,6 +13,7 @@ from pytesseract import Output
 import spacy
 import re
 import calendar
+import sys
 from datetime import datetime
 
 # Common OCR misspellings for months
@@ -128,7 +129,8 @@ def fuzzy_parse_date(text):
 
     return None
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+if sys.platform == "win32":
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 app = FastAPI(title="WELTH ML Service")
 @app.get("/")
 async def root():
@@ -260,27 +262,22 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
                 image = image[y:y+h, x:x+w] # Crop out the bedsheet!
                 print("DEBUG: Successfully cropped out the background.")
 
-        # --- DUAL-PASS IMAGE ENHANCEMENT & SCORING ---
         image = cv2.resize(image, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
         image = cv2.copyMakeBorder(image, 50, 50, 50, 50, cv2.BORDER_CONSTANT, value=[255, 255, 255])
         grey = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-        # Candidate 1: Otsu (Good for flat, crumpled paper)
         _, binary_otsu = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         text_otsu = pytesseract.image_to_string(binary_otsu, config='--psm 6')
 
-        # Candidate 2: Adaptive (Good for shadows and complex backgrounds)
         blur = cv2.bilateralFilter(grey, 9, 75, 75)
         binary_adaptive = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
         text_adaptive = pytesseract.image_to_string(binary_adaptive, config='--psm 6')
 
-        # Scoring function to pick the most logical receipt text
         def score_ocr_text(t):
             if not t: return 0
             score = sum(c.isalnum() for c in t) 
             upper_t = t.upper()
             
-            # 1. Heavily reward actual banking and receipt keywords
             keywords = ['TOTAL', 'GRAND', 'CASH', 'TAX', 'INVOICE', 'RECEIPT', 'DATE', 'AMOUNT', 'QTY', 'ITEM'
             'DEPOSIT', 'BANK', 'LKR', 'RS', 'BALANCE', 'ACCOUNT', 'CARD', 'WITHDRAWAL', 'CEYLON', 'SAMPATH'
             'COMMERCIAL', 'COMMERCIAL BANK', 'BANK OF CEYLON', 'BOC', 'SAMPATH BANK', 'DFCC', 'DFCC BANK'
@@ -291,12 +288,9 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
                     score += 200
                     found_keywords += 1
             
-            # 2. Reward finding proper decimal amounts (using our updated regex)
             if re.search(r'[\d,\s]+\.\s?\d{2}', t): 
                 score += 300
             
-            # 3. Only add character count if we actually found receipt keywords
-            # This prevents giant blocks of hallucinated gibberish from winning
             if found_keywords > 0:
                 score += sum(c.isalnum() for c in t) * 0.1
             
@@ -382,24 +376,21 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
             cash_amount = 0.0
             balance_amount = 0.0
         
-            # Scan lines for Cash and Balance values
             for line in text.split('\n'):
                 upper_line = line.upper()
-                nums = re.findall(r'[\d,]+\.\d{2}', line)
+                nums = re.findall(r'[\d,]+\.\s?\d{2}', line)
                 if nums:
-                    val = float(nums[-1].replace(',', ''))
+                    val = float(re.sub(r'[^\d\.]', '', nums[-1]))
                     if "CASH" in upper_line and not "TOTAL" in upper_line:
                         cash_amount = val
                     elif any(k in upper_line for k in ["BALANCE", "CHANGE"]):
                         balance_amount = val
                     
-            # If we have both, calculate the true total
             if cash_amount > 0 and balance_amount > 0 and cash_amount > balance_amount:
                 calculated_total = round(cash_amount - balance_amount, 2)
-                # If the calculated total is extremely close to the OCR total (e.g., 850.00 vs 850.66)
-                if abs(calculated_total - amount) < 1.0:
-                    print(f"DEBUG: Math verification corrected OCR error: {amount} -> {calculated_total}")
-                    amount = calculated_total
+                
+                print(f"DEBUG: Math verification corrected OCR max() error: Cash {cash_amount} - Bal {balance_amount} = {calculated_total}")
+                amount = calculated_total
 
             # --- 2. Thermal Printer Zero Artifact Fix ---
             # In Sri Lanka, prices almost never end in .66 or .88. Snap them to .00
@@ -434,6 +425,7 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         
         # 1. First search entire text for "Anchor Merchants"
         anchor_merchants = {
+            "THE FASHION STORE": "The Fashion Store",
             "COMMERCIAL BANK": "Commercial Bank",
             "CONMERCIAL": "Commercial Bank", 
             "SAMPATH": "Sampath Bank",
@@ -515,18 +507,18 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
             "food": ["restaurant", "food", "eat", "cafe", "meal", "pizza", "burger", "coffee", "keells", "cargills", "supermarket", "dine", "kitchen", "bake", "lane", "indian", "spice", "route", "naan", "curry", "paneer", "biryani", "lassi", "thali", "sticks"],
             "entertainment": ["pub", "bar", "cinema", "movie", "theater", "game", "club", "party", "drink", "cocktail", "liquor", "netflix", "spotify", "billard"],
             "transportation": ["fuel", "petrol", "gas", "taxi", "uber", "pickme", "transport", "garage", "travel", "bus", "train", "metro"],
-            "Healthcare": ["pharmacy", "medical", "clinic", "health", "hospital", "doctor", "chemist", "dental", "medicine"],
-            "Utilities": ["dialog", "mobitel", "electricity", "water", "bill", "recharge", "internet", "phone", "wifi", "ceb", "nwsdb", "board", "power", "utility"],
-            "Shopping": ["shopping", "retail", "store", "mall", "clothing", "electronics", "fashion", "no-limit", "cool-planet", "odell"],
-            "Education": ["school", "college", "university", "course", "tution", "book", "stationary", "udemy", "coursera"],
-            "Personal Care": ["salon", "spa", "hair", "beauty", "gym", "care", "wellness", "shampoo", "soap", "cosmetic", "personal"],
-            "Travel": ["hotel", "flight", "booking", "plane", "stay", "airbnb", "agoda"],
-            "Bills & Fees": ["repair", "service", "charge", "maintenance", "tax", "fee", "expert", "valuation", "legal"],
-            "Housing": ["rent", "mortgage", "property", "lease", "apartment"],
-            "Groceries": ["groceries", "market", "vegetable", "fruit", "milk", "egg", "bread"],
-            "Gifts & Donations": ["gift", "donation", "charity", "present", "birthday", "wedding"],
-            "Insurance": ["insurance", "policy", "premium", "allianz"],
-            "Other Expenses": ["miscellaneous", "other"]
+            "healthcare": ["pharmacy", "medical", "clinic", "health", "hospital", "doctor", "chemist", "dental", "medicine"],
+            "utilities": ["dialog", "mobitel", "electricity", "water", "bill", "recharge", "internet", "phone", "wifi", "ceb", "nwsdb", "board", "power", "utility"],
+            "shopping": ["shopping", "retail", "store", "mall", "clothing", "electronics", "fashion", "no-limit", "cool-planet", "odell"],
+            "education": ["school", "college", "university", "course", "tution", "book", "stationary", "udemy", "coursera"],
+            "personal": ["salon", "spa", "hair", "beauty", "gym", "care", "wellness", "shampoo", "soap", "cosmetic", "personal"],
+            "travel": ["hotel", "flight", "booking", "plane", "stay", "airbnb", "agoda"],
+            "bills": ["repair", "service", "charge", "maintenance", "tax", "fee", "expert", "valuation", "legal"],
+            "housing": ["rent", "mortgage", "property", "lease", "apartment"],
+            "groceries": ["groceries", "market", "vegetable", "fruit", "milk", "egg", "bread"],
+            "gifts": ["gift", "donation", "charity", "present", "birthday", "wedding"],
+            "insurance": ["insurance", "policy", "premium", "allianz"],
+            "other-expense": ["miscellaneous", "other"]
         }
 
         lower_merchant = merchant.lower()

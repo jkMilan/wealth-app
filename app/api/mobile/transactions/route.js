@@ -12,7 +12,7 @@ export async function POST(req) {
     if (!payload || !payload.userId) return NextResponse.json({ error: "Invalid token" }, { status: 401 });
 
     const body = await req.json();
-    const { type, amount, accountId, category, date, description, isRecurring } = body;
+    const { type, amount, accountId, category, date, description, isRecurring, recurringInterval } = body;
 
     const transaction = await db.transaction.create({
       data: {
@@ -24,6 +24,7 @@ export async function POST(req) {
         date: new Date(date),
         description: description || "Mobile Transaction",
         isRecurring: isRecurring || false,
+        recurringInterval: isRecurring ? recurringInterval : null,
         status: "COMPLETED",
       }
     });
