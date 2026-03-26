@@ -16,7 +16,6 @@ import calendar
 import sys
 from datetime import datetime
 
-# Common OCR misspellings for months
 MONTH_MAP = {
     "jan": "January", "feb": "February", "mar": "March", "apr": "April",
     "may": "May", "jun": "June", "jul": "July", "aug": "August",
@@ -192,7 +191,6 @@ async def cluster_user(stats: UserStats):
         if stats.monthly_income > 0:
             savings_rate = (stats.monthly_income - stats.monthly_expenses) / stats.monthly_income
 
-        # Map cluster to profile
         if cluster_id == 0: 
             profile = "Saver"
             advice = "Great job! You are saving over 20% of your income. Consider investing the surplus."
@@ -245,22 +243,7 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         if image is None:
             raise ValueError("Invalid image.")
 
-        # Find the white paper against the darker background
-        gray_crop = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        blur_crop = cv2.GaussianBlur(gray_crop, (5, 5), 0)
-        _, thresh_crop = cv2.threshold(blur_crop, 150, 255, cv2.THRESH_BINARY)
-        contours, _ = cv2.findContours(thresh_crop, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        if contours:
-            # Grab the largest contour (presumably the receipt)
-            largest_contour = max(contours, key=cv2.contourArea)
-            image_area = image.shape[0] * image.shape[1]
-            
-            # Only crop if it takes up a decent chunk of the image (> 10%)
-            if cv2.contourArea(largest_contour) > image_area * 0.1:
-                x, y, w, h = cv2.boundingRect(largest_contour)
-                image = image[y:y+h, x:x+w] # Crop out the bedsheet!
-                print("DEBUG: Successfully cropped out the background.")
+        print("DEBUG: Using full uncropped image.")
 
         image = cv2.resize(image, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
         image = cv2.copyMakeBorder(image, 50, 50, 50, 50, cv2.BORDER_CONSTANT, value=[255, 255, 255])
@@ -392,14 +375,6 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
                 print(f"DEBUG: Math verification corrected OCR max() error: Cash {cash_amount} - Bal {balance_amount} = {calculated_total}")
                 amount = calculated_total
 
-            # --- 2. Thermal Printer Zero Artifact Fix ---
-            # In Sri Lanka, prices almost never end in .66 or .88. Snap them to .00
-            amount_str = f"{amount:.2f}"
-            if amount_str.endswith('.66') or amount_str.endswith('.88') or amount_str.endswith('.99'):
-                corrected_amount = float(amount_str[:-2] + '00')
-                print(f"DEBUG: Correcting thermal zero artifact: {amount} -> {corrected_amount}")
-                amount = corrected_amount 
-
         print(f"DEBUG: Final Detected Amount: {amount}")
 
         # 2. Date Extraction
@@ -492,10 +467,6 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
             orgs = [ent.text for ent in doc.ents if ent.label_ == "ORG" and not any(bad in ent.text.upper() for bad in invalid_orgs)]
             if orgs:
                 merchant = orgs[0]
-        
-        # Post-process merchant for CEB
-        if "EBIL-CEB" in merchant.upper() or "CEB" == merchant.upper().split()[0]:
-            merchant = "Ceylon Electricity Board"
 
         # 4. Category detection 
         combined_text = (text + " " + merchant).lower()
@@ -535,12 +506,7 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
                 category = cat
                 if cat in ["food", "entertainment", "bills", "utilities"]:
                     break
-        
-        # Strict override for electricity/water/ceb
-        if any(x in combined_text for x in ["ceb", "electricity", "water board", "utility bill"]):
-            category = "utilities"
             
-        # 5. Type detection
         txn_type = "EXPENSE"
         upper_text = text.upper()
         if any(x in upper_text for x in ["REFUND", "CREDIT NOTE", "DEPOSIT", "REVERSAL", "RECEIVED", "CREDITED"]):

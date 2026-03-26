@@ -101,9 +101,10 @@ export default function LogExpenseScreen({ navigation }) {
           const permission = await ImagePicker.requestCameraPermissionsAsync();
           if (permission.granted) {
             let result = await ImagePicker.launchCameraAsync({ 
-              mediaTypes: ['images'], // FIXED: Modern Expo ImagePicker syntax
-              allowsEditing: true, 
-              quality: 0.7 
+              mediaTypes: ['images'],
+              allowsEditing: true,
+              aspect: [3, 4],
+              quality: 0.8 
             });
             if (!result.canceled) processReceiptImage(result.assets[0]);
           }
@@ -115,9 +116,10 @@ export default function LogExpenseScreen({ navigation }) {
           const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (permission.granted) {
             let result = await ImagePicker.launchImageLibraryAsync({ 
-              mediaTypes: ['images'], // FIXED: Modern Expo ImagePicker syntax
-              allowsEditing: true, 
-              quality: 0.7 
+              mediaTypes: ['images'],
+              allowsEditing: true,
+              aspect: [3, 4],
+              quality: 0.8 
             });
             if (!result.canceled) processReceiptImage(result.assets[0]);
           }
