@@ -6,7 +6,7 @@ import { PieChart } from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get("window").width;
 
-export default function DashboardScreen() {
+export default function DashboardScreen({ navigation }) {
   const [dashboardData, setDashboardData] = useState({ totalBalance: 0, accounts: [], income: 0, expense: 0, transactions: [], budgetAmount: 70000 }); 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -152,7 +152,19 @@ export default function DashboardScreen() {
       >
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
           
-          <View className="bg-blue-600 rounded-3xl p-6 mr-4 w-72 shadow-lg shadow-blue-500/30 justify-between">
+          {/* MAIN ACCOUNT CARD (Blue) */}
+          <TouchableOpacity 
+            activeOpacity={0.8}
+            onPress={() => {
+              if (dashboardData.accounts?.[0]) {
+                navigation.navigate('AccountDetails', { 
+                  accountId: dashboardData.accounts[0].id, 
+                  accountName: dashboardData.accounts[0].name 
+                });
+              }
+            }}
+            className="bg-blue-600 rounded-3xl p-6 mr-4 w-72 shadow-lg shadow-blue-500/30 justify-between"
+          >
             <View>
               <View className="flex-row justify-between items-center mb-1">
                 <Text className="text-blue-200 text-sm font-medium uppercase tracking-wider">
@@ -166,10 +178,19 @@ export default function DashboardScreen() {
                 LKR {Number(dashboardData.accounts?.[0]?.balance || 0).toFixed(2)}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
+          {/* SECONDARY ACCOUNT CARDS (Gray) */}
           {dashboardData.accounts?.slice(1).map((account) => (
-            <View key={account.id} className="bg-zinc-800 rounded-3xl p-6 mr-4 w-64 border border-zinc-700/50 justify-between">
+            <TouchableOpacity 
+              key={account.id} 
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('AccountDetails', { 
+                accountId: account.id, 
+                accountName: account.name 
+              })}
+              className="bg-zinc-800 rounded-3xl p-6 mr-4 w-64 border border-zinc-700/50 justify-between"
+            >
               <View>
                 <Text className="text-zinc-400 text-sm font-medium mb-1 uppercase tracking-wider">{account.name}</Text>
                 <Text className="text-white text-2xl font-bold">LKR {Number(account.balance).toFixed(2)}</Text>
@@ -181,7 +202,7 @@ export default function DashboardScreen() {
               >
                 <Text className="text-zinc-300 text-xs font-bold uppercase tracking-wider">Set as Default</Text>
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
 
