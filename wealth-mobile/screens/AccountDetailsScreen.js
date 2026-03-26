@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 
 export default function AccountDetailsScreen({ route, navigation }) {
-  // We grab the account ID and Name passed from the previous screen!
   const { accountId, accountName } = route.params || {};
 
   const [loading, setLoading] = useState(true);
@@ -19,9 +18,11 @@ export default function AccountDetailsScreen({ route, navigation }) {
       const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
       const session = JSON.parse(storedSession);
 
-      // Fetching from your live Vercel backend
       const response = await fetch(`https://wealth-app-three.vercel.app/api/mobile/accounts/${accountId}`, {
-        headers: { 'Authorization': `Bearer ${session.token}` }
+        headers: { 
+          'Authorization': `Bearer ${session.token}`,
+          'Content-Type': 'application/json',
+        }
       });
       
       const data = await response.json();
