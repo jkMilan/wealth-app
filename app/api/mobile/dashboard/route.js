@@ -56,7 +56,7 @@ export async function GET(req) {
       income,
       expense,
       transactions,
-      budgetAmount: user?.monthlyBudget || 0
+      Budget: user?.monthlyBudget || 0
     }, { status: 200 });
 
   } catch (error) {
