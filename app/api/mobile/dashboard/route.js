@@ -24,7 +24,7 @@ export async function GET(req) {
     const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
 
     const transactions = await db.transaction.findMany({
-      where: { userId: userId, accountId: defaultAccount?.id },
+      where: { userId: userId },
       orderBy: { date: "desc" }, 
       include: {
         account: {
