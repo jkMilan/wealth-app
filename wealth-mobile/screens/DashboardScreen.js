@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, RefreshControl, ScrollView, Dimensions, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
-import { PieChart } from 'react-native-chart-kit';
+import { PieChart } from 'react-native-gifted-charts';
+
+const pieData = [
+  { value: 39431, color: '#3b82f6', text: 'Other' },
+  { value: 14050, color: '#f59e0b', text: 'Food' },
+  { value: 9100, color: '#ef4444', text: 'Shopping' },
+  { value: 5000, color: '#f97316', text: 'Utilities' },
+  { value: 100, color: '#71717a', text: 'Bills' },
+];
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -245,19 +253,34 @@ export default function DashboardScreen({ navigation }) {
         </View>
 
         {pieData.length > 0 && (
-          <View className="bg-zinc-800 rounded-3xl p-4 mb-6 border border-zinc-700/50">
-            <Text className="text-white font-bold text-lg mb-2 ml-2">Expense Breakdown</Text>
+        <View className="bg-zinc-900 p-5 rounded-3xl border border-zinc-800 mt-6 mb-4 items-center">
+            <Text className="text-white text-lg font-bold mb-6 self-start">Monthly Expense Breakdown</Text>
+  
             <PieChart
               data={pieData}
-              width={screenWidth - 64}
-              height={160}
-              chartConfig={{
-                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              donut={false}
+              radius={110}
+              showText
+              showValuesAsLabels
+              textColor="white"
+              textSize={12}
+              showExternalLabels
+              externalLabelComponent={(item) => {
+                return (
+                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: item.color, fontWeight: 'bold', fontSize: 12 }}>
+                      {item.text}
+                    </Text>
+                    <Text style={{ color: '#a1a1aa', fontSize: 11 }}>
+                      LKR {item.value.toLocaleString()}
+                    </Text>
+                  </View>
+                );
               }}
-              accessor={"amount"}
-              backgroundColor={"transparent"}
-              paddingLeft={"10"}
-              absolute
+              externalLabelRadius={145}
+              externalLabelLines
+              externalLabelLineColor="#52525b"
+              externalLabelLineThickness={1}
             />
           </View>
         )}
