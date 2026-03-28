@@ -14,7 +14,6 @@ export async function POST(req) {
 
     const { name, type, balance } = await req.json();
 
-    // Basic validation
     if (!name || !balance) {
       return NextResponse.json({ error: "Name and Balance are required" }, { status: 400 });
     }

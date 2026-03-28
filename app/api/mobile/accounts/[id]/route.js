@@ -4,11 +4,9 @@ import { decrypt } from "@/lib/auth";
 
 export async function GET(req, { params }) {
   try {
-    // 1. Await the params (Crucial in newer Next.js versions)
     const resolvedParams = await params;
     const accountId = resolvedParams.id;
 
-    // 2. Authentication
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,22 +20,17 @@ export async function GET(req, { params }) {
     }
     const userId = payload.userId;
 
-    // 3. Fetch the specific account
     const account = await db.account.findUnique({
       where: { id: accountId }
     });
-
-    // DEBUG: Check your terminal to see if these match!
     console.log(`Searching for: ${accountId}`);
     console.log(`Logged in User: ${userId}`);
     if (account) console.log(`Account Owner in DB: ${account.userId}`);
 
-    // 4. Security Check
     if (!account || account.userId !== userId) {
         return NextResponse.json({ error: "Account not found or unauthorized" }, { status: 404 });
     }
 
-    // 5. Fetch transactions
     const transactions = await db.transaction.findMany({
       where: { 
         userId: userId,

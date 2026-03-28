@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 import { decrypt } from "@/lib/auth";
-import { defaultCategories } from "@/data/categories"; // Adjust this path if needed
+import { defaultCategories } from "@/data/categories"; 
 
 export async function GET(req) {
   try {
-    // 1. Authentication (Perfectly matching your dashboard logic!)
     const authHeader = req.headers.get("authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -19,20 +18,17 @@ export async function GET(req) {
     }
     const userId = payload.userId;
 
-    // 2. Fetch all recurring transactions for this user
     const recurringTransactions = await db.transaction.findMany({
       where: { 
         userId: userId,
-        isRecurring: true // Only fetch the subscriptions!
+        isRecurring: true 
       },
       orderBy: { 
         createdAt: "desc" 
       },
     });
 
-    // 3. Attach the beautiful UI colors and icons to send to the mobile app
     const enrichedSubscriptions = recurringTransactions.map(sub => {
-      // Match the database category ID to your frontend categories.js file
       const matchedCategory = defaultCategories.find(c => c.id === sub.category);
       
       return {
@@ -45,7 +41,6 @@ export async function GET(req) {
           icon: matchedCategory.icon,
           color: matchedCategory.color
         } : {
-          // Fallback if a category got deleted or modified
           name: sub.category || 'Other',
           icon: 'Receipt',
           color: '#9ca3af' 

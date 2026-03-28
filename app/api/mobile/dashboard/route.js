@@ -33,6 +33,11 @@ export async function GET(req) {
       }
     });
 
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { monthlyBudget: true }
+    });
+
     let income = 0;
     let expense = 0;
 
@@ -50,7 +55,8 @@ export async function GET(req) {
       accounts,     
       income,
       expense,
-      transactions
+      transactions,
+      budgetAmount: user?.monthlyBudget || 0
     }, { status: 200 });
 
   } catch (error) {
