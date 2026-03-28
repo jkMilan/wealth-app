@@ -132,7 +132,7 @@ export default function LogExpenseScreen({ navigation }) {
   const processReceiptImage = async (imageAsset) => {
     setLoading(true);
     try {
-      const ML_API_URL = 'http://192.168.1.14:8000/api/ml/ocr'; 
+      const ML_API_URL = 'https://wealth-app-three.vercel.app/api/ml/ocr'; 
 
       const uploadResponse = await FileSystem.uploadAsync(ML_API_URL, imageAsset.uri, {
         httpMethod: 'POST',

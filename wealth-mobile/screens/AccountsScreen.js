@@ -9,6 +9,7 @@ export default function AccountsScreen({ navigation }) {
   const [accounts, setAccounts] = useState([]);
   const [totalBalance, setTotalBalance] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
+  const accountTypes = ['CURRENT', 'SAVINGS'];
   const [newAccount, setNewAccount] = useState({ name: '', type: 'CURRENT', balance: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,7 +24,7 @@ export default function AccountsScreen({ navigation }) {
       const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
       const session = JSON.parse(storedSession);
 
-      const response = await fetch('http://192.168.1.14:3000/api/mobile/accounts', {
+      const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/accounts', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${session.token}`,
@@ -53,7 +54,7 @@ export default function AccountsScreen({ navigation }) {
       const session = JSON.parse(storedSession);
 
       // Point this to your local IP for testing, then Vercel later
-      const response = await fetch('http://192.168.1.14:3000/api/mobile/dashboard', {
+      const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/dashboard', {
         headers: { 'Authorization': `Bearer ${session.token}` }
       });
       
@@ -166,6 +167,27 @@ export default function AccountsScreen({ navigation }) {
               placeholder="e.g. Savings Account"
               placeholderTextColor="#52525b"
             />
+
+            <Text className="text-zinc-400 mb-3">Account Type</Text>
+            <View className="flex-row mb-6">
+            {accountTypes.map((type) => (
+            <TouchableOpacity
+              key={type}
+              onPress={() => setNewAccount({ ...newAccount, type })}
+              className={`flex-1 p-3 rounded-xl mr-2 items-center border ${
+              newAccount.type === type 
+              ? 'bg-blue-600 border-blue-500' 
+              : 'bg-zinc-800 border-zinc-700'
+              }`}
+            >
+              <Text className={`text-xs font-bold ${
+                newAccount.type === type ? 'text-white' : 'text-zinc-500'
+              }`}>
+                {type}
+              </Text>
+            </TouchableOpacity>
+            ))}
+            </View> 
 
             <Text className="text-zinc-400 mb-2">Initial Balance</Text>
             <TextInput 
