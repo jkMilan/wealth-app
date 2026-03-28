@@ -61,6 +61,7 @@ export async function getAccountWithTransactions(accountId) {
             },
         },
     });
+    
 
     if (!account) return null;
 
@@ -68,6 +69,37 @@ export async function getAccountWithTransactions(accountId) {
         ...serializeTransaction(account),
         transactions: account.transactions.map(serializeTransaction)
     };
+}
+
+export async function deleteAccount(accountId) {
+    try {
+        const user = await checkUser();
+        if (!user) throw new Error("Unauthorized");
+
+        const account = await db.account.findUnique({
+            where: {
+                id: accountId,
+                userId: user.id
+            }
+        });
+
+        if (!account) throw new Error("Account not found");
+
+        if (account.isDefault) {
+            throw new Error("Cannot delete your default account. Please set another account as default first.");
+        }
+
+        await db.account.delete({
+            where: {
+                id: accountId,
+            }
+        });
+
+        revalidatePath("/dashboard");
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 }
 
 export async function bulkDeleteTransactions(transactionIds) {

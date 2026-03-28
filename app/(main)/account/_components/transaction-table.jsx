@@ -144,7 +144,8 @@ const TransactionTable = ({ transactions }) => {
 
     useEffect(() => {
         if (deleted && !deleteLoading) {
-            toast.error("Transaction deleted successfully");
+            toast.error("Transactions deleted successfully");
+            setSelectedIds([]);
         }
     }, [deleted, deleteLoading]);
 
@@ -389,7 +390,11 @@ const TransactionTable = ({ transactions }) => {
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
                                                     className="text-destructive"
-                                                    onClick={() => deleteFn([transaction.id])}
+                                                    onClick={() => {
+                                                        if (window.confirm("Are you sure you want to delete this transaction?")) {
+                                                            deleteFn([transaction.id]);
+                                                        }
+                                                    }}
                                                 >
                                                     Delete
                                                 </DropdownMenuItem>

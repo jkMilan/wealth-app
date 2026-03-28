@@ -6,6 +6,7 @@ import TransactionTable from "../_components/transaction-table";
 import { BarLoader } from "react-spinners";
 import AccountChart from "../_components/account-chart";
 import ExportButton from "@/components/export-button";
+import DeleteAccountButton from "../_components/delete-account-button";
 
 const AccountPage = async ({ params }) => {
     const { id } = await params;
@@ -38,12 +39,14 @@ const AccountPage = async ({ params }) => {
                         {account._count.transactions} Transactions
                     </p>
                 </div>
+                <div className="flex items-center gap-2">
+                <DeleteAccountButton accountId={account.id} />
                 
-                {/* 🚀 The Export Button Dropped Here */}
                 <ExportButton 
                     transactions={transactions} 
                     accountName={account.name} 
                 />
+                </div>
             </div>
         
         </div>
