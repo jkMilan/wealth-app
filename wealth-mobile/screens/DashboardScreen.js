@@ -60,7 +60,7 @@ export default function DashboardScreen({ navigation }) {
       if (response.ok) {
         setBudgetModalVisible(false);
         setNewBudget('');
-        fetchDashboardData(); // Refreshes the dashboard to show the new bar!
+        fetchDashboardData();
       } else {
         Alert.alert("Error", "Could not save budget");
       }
@@ -180,7 +180,7 @@ export default function DashboardScreen({ navigation }) {
   }
 
   const pieData = getPieData();
-  const budgetLimit = dashboardData.budgetAmount || 70000;
+  const budgetLimit = dashboardData.budgetAmount > 0 ? dashboardData.budgetAmount : 100000;
   const budgetSpent = dashboardData.expense || 0;
   const budgetPercentage = Math.min((budgetSpent / budgetLimit) * 100, 100);
 
