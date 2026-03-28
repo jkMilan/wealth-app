@@ -26,7 +26,6 @@ export async function GET(req) {
     const transactions = await db.transaction.findMany({
       where: { userId: userId },
       orderBy: { date: "desc" }, 
-      take: 20,
       include: {
         account: {
           select: { name: true } 

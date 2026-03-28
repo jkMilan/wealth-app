@@ -4,14 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { PieChart } from 'react-native-gifted-charts';
 
-const pieData = [
-  { value: 39431, color: '#3b82f6', text: 'Other' },
-  { value: 14050, color: '#f59e0b', text: 'Food' },
-  { value: 9100, color: '#ef4444', text: 'Shopping' },
-  { value: 5000, color: '#f97316', text: 'Utilities' },
-  { value: 100, color: '#71717a', text: 'Bills' },
-];
-
 const screenWidth = Dimensions.get("window").width;
 
 export default function DashboardScreen({ navigation }) {
@@ -97,24 +89,31 @@ export default function DashboardScreen({ navigation }) {
     if (expenses.length === 0) return [];
 
     const categoryTotals = expenses.reduce((acc, t) => {
-      const cat = t.category || 'Uncategorized';
-      acc[cat] = (acc[cat] || 0) + Math.abs(Number(t.amount));
+      let rawCat = t.category || 'Uncategorized';
+      let cleanCat = rawCat.toLowerCase().replace(/-/g, ' ');
+      let formattedCat = cleanCat.replace(/\b\w/g, char => char.toUpperCase());
+
+      acc[formattedCat] = (acc[formattedCat] || 0) + Math.abs(Number(t.amount));
       return acc;
     }, {});
 
-    const colors = ['#f87171', '#3b82f6', '#facc15', '#a855f7', '#fb923c', '#10b981'];
+    const colors = ['#facc15', '#ec4899', '#7f1d1d', '#000000', '#14b8a6', '#3b82f6', '#ef4444', '#f97316'];
     
     return Object.keys(categoryTotals).map((key, index) => ({
-      name: key,
-      amount: categoryTotals[key],
+      text: key,
+      value: categoryTotals[key],
       color: colors[index % colors.length],
-      legendFontColor: '#9ca3af',
-      legendFontSize: 12
     }));
   };
 
   const renderTransaction = ({ item }) => {
     const isIncome = item.type === 'INCOME';
+
+    const pieData = [
+      { value: 9100.00, color: '#ef4444', text: 'Shopping' },
+      { value: 5000.00, color: '#f97316', text: 'Utilities' },
+      { value: 100.00, color: '#71717a', text: 'Bills' },
+  ];
 
     return (
       <View className="flex-row justify-between items-center bg-zinc-800 p-4 mb-3 rounded-2xl shadow-sm border border-zinc-700/50">
@@ -253,35 +252,39 @@ export default function DashboardScreen({ navigation }) {
         </View>
 
         {pieData.length > 0 && (
-        <View className="bg-zinc-900 p-5 rounded-3xl border border-zinc-800 mt-6 mb-4 items-center">
-            <Text className="text-white text-lg font-bold mb-6 self-start">Monthly Expense Breakdown</Text>
-  
+          <View className="bg-zinc-900 p-5 rounded-3xl border border-zinc-800 mt-6 mb-4 items-center">
+            <Text className="text-white text-lg font-bold mb-8 self-start px-2">Monthly Expense Breakdown</Text>
+            
             <PieChart
               data={pieData}
-              donut={false}
-              radius={110}
-              showText
-              showValuesAsLabels
-              textColor="white"
-              textSize={12}
-              showExternalLabels
-              externalLabelComponent={(item) => {
-                return (
-                  <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ color: item.color, fontWeight: 'bold', fontSize: 12 }}>
+              donut={true}       // Modern donut style
+              radius={85}
+              innerRadius={45}   // Creates the hole in the middle
+              showText={false}   // Prevents overlapping text
+            />
+
+            {/* --- CLEAN BOTTOM LEGEND --- */}
+            <View className="w-full mt-10 px-2">
+              {pieData.map((item, index) => (
+                <View key={index} className="flex-row items-center justify-between mb-4">
+                  
+                  {/* Color Box and Category Name */}
+                  <View className="flex-row items-center">
+                    <View style={{ backgroundColor: item.color, width: 14, height: 14, borderRadius: 4, marginRight: 12 }} />
+                    <Text className="text-zinc-300 text-[15px] font-medium capitalize">
                       {item.text}
                     </Text>
-                    <Text style={{ color: '#a1a1aa', fontSize: 11 }}>
-                      LKR {item.value.toLocaleString()}
-                    </Text>
                   </View>
-                );
-              }}
-              externalLabelRadius={145}
-              externalLabelLines
-              externalLabelLineColor="#52525b"
-              externalLabelLineThickness={1}
-            />
+
+                  {/* Exact Amount */}
+                  <Text className="text-white font-bold text-[15px]">
+                    LKR {item.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Text>
+                  
+                </View>
+              ))}
+            </View>
+            
           </View>
         )}
 
