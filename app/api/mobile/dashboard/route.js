@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/prisma";
 import { decrypt } from "@/lib/auth";
+import { getDashboardData } from "@/actions/dashboard"; 
 
 export async function GET(req) {
   try {
@@ -14,75 +14,10 @@ export async function GET(req) {
     if (!payload || !payload.userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
-    const userId = payload.userId;
+    
+    const dashboardData = await getDashboardData(payload.userId);
 
-    const accounts = await db.account.findMany({
-      where: { userId: userId },
-      orderBy: { isDefault: "desc" }, 
-    });
-    const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
-    const defaultAccount = accounts.find(a => a.isDefault === true) || accounts[0];
-
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { monthlyBudget: true }
-    });
-    const budgetLimit = defaultAccount?.monthlyBudget || user?.monthlyBudget || 0; 
-
-    const transactions = await db.transaction.findMany({
-      where: { 
-        userId: userId,
-        accountId: defaultAccount?.id
-      },
-      orderBy: { date: "desc" }, 
-      include: { account: { select: { name: true } } }
-    });
-
-    // Current Month Boundaries
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-    let income = 0;
-    let expense = 0;
-    const categoryTotals = {};
-
-    transactions.forEach(t => {
-      const amount = Number(t.amount);
-      const txDate = new Date(t.date);
-
-      if (txDate >= startOfMonth && txDate <= endOfMonth) {
-        if (t.type === "INCOME") {
-          income += Math.abs(amount);
-        } else if (t.type === "EXPENSE") {
-          expense += Math.abs(amount);
-          let rawCat = t.category || 'Uncategorized';
-          let cleanCat = rawCat.toLowerCase().replace(/-/g, ' ');
-          let formattedCat = cleanCat.replace(/\b\w/g, char => char.toUpperCase());
-          categoryTotals[formattedCat] = (categoryTotals[formattedCat] || 0) + Math.abs(amount);
-        }
-      }
-    });
-
-    const colors = ['#facc15', '#ec4899', '#7f1d1d', '#000000', '#14b8a6', '#3b82f6', '#ef4444', '#f97316'];
-    const pieData = Object.keys(categoryTotals).map((key, index) => ({
-      text: key,
-      value: categoryTotals[key],
-      color: colors[index % colors.length],
-    }));
-
-    const budgetPercentage = budgetLimit > 0 ? Math.min((expense / budgetLimit) * 100, 100) : 0;
-
-    return NextResponse.json({
-      totalBalance,
-      accounts,     
-      income,           
-      expense,          
-      transactions,     
-      budgetLimit,      
-      budgetPercentage, 
-      pieData           
-    }, { status: 200 });
+    return NextResponse.json(dashboardData, { status: 200 });
 
   } catch (error) {
     console.error("MOBILE DASHBOARD ERROR:", error);

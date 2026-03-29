@@ -1,3 +1,5 @@
+"use server";
+
 import { Resend } from "resend";
 import { render } from "@react-email/components";
 

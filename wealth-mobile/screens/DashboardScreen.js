@@ -23,8 +23,13 @@ export default function DashboardScreen({ navigation }) {
       if (!storedSession) return;
       const session = JSON.parse(storedSession);
 
-      const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/dashboard', {
-        headers: { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' }
+      const timestamp = new Date().getTime();
+      const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/dashboard?t=' + timestamp, {
+        headers: { 
+          'Authorization': `Bearer ${session.token}`, 
+          'Content-Type': 'application/json', 
+          'Cache-Control': 'no-cache' 
+        }
       });
       
       const data = await response.json();
