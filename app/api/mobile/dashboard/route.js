@@ -37,10 +37,6 @@ export async function GET(req) {
 
     // 3. Global Calculations
     // Fetch all user transactions to calculate accurate Income/Expenses/Pie Chart
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
     const allTransactions = await db.transaction.findMany({
       where: { userId: userId },
       include: { account: { select: { name: true } } }
@@ -52,13 +48,17 @@ export async function GET(req) {
     let income = 0;
     let expense = 0;
     const categoryTotals = {};
+    const currentDate = new Date();
 
     defaultAccountTransactions.forEach(t => {
       const amount = Number(t.amount);
-      const txDate = new Date(t.date);
+      const transactionDate = new Date(t.date);
 
       // Only aggregate totals for the current month
-      if (txDate >= startOfMonth && txDate <= endOfMonth) {
+      if (
+        transactionDate.getMonth() === currentDate.getMonth() &&
+        transactionDate.getFullYear() === currentDate.getFullYear()
+      ) {
         if (t.type === "INCOME") {
           income += Math.abs(amount);
         } else if (t.type === "EXPENSE") {
