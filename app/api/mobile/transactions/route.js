@@ -14,28 +14,32 @@ export async function POST(req) {
     const body = await req.json();
     const { type, amount, accountId, category, date, description, isRecurring, recurringInterval } = body;
 
-    const transaction = await db.transaction.create({
-      data: {
-        userId: payload.userId,
-        accountId,
-        type,
-        amount,
-        category,
-        date: new Date(date),
-        description: description || "Mobile Transaction",
-        isRecurring: isRecurring || false,
-        recurringInterval: isRecurring ? recurringInterval : null,
-        status: "COMPLETED",
-      }
+    const result = await db.$transaction(async (tx) => {
+      const transaction = await tx.transaction.create({
+        data: {
+          userId: payload.userId,
+          accountId,
+          type,
+          amount,
+          category,
+          date: new Date(date),
+          description: description || "Mobile Transaction",
+          isRecurring: isRecurring || false,
+          recurringInterval: isRecurring ? recurringInterval : null,
+          status: "COMPLETED",
+        }
+      });
+
+      const balanceChange = type === "EXPENSE" ? -amount : amount;
+      await tx.account.update({
+        where: { id: accountId },
+        data: { balance: { increment: balanceChange } }
+      });
+
+      return transaction;
     });
 
-    const balanceChange = type === "EXPENSE" ? -amount : amount;
-    await db.account.update({
-      where: { id: accountId },
-      data: { balance: { increment: balanceChange } }
-    });
-
-    return NextResponse.json({ success: true, transaction }, { status: 200 });
+    return NextResponse.json({ success: true, transaction: result }, { status: 200 });
 
   } catch (error) {
     console.error("CREATE TRANSACTION ERROR:", error);
