@@ -82,36 +82,26 @@ export async function getUserAccounts() {
 
 export async function getDashboardData(mobileUserId = null) {
     let userId = mobileUserId;
-    
     if (!userId) {
         const user = await checkUser(); 
         userId = user?.id;
     }
-
     if (!userId) throw new Error("Unauthorized");
 
     const accounts = await db.account.findMany({
       where: { userId: userId },
       orderBy: { isDefault: "desc" }, 
     });
-    const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
     const defaultAccount = accounts.find(a => a.isDefault === true) || accounts[0];
 
-    const userRecord = await db.user.findUnique({
-      where: { id: userId },
-      select: { monthlyBudget: true }
-    });
-    const budgetLimit = defaultAccount?.monthlyBudget || userRecord?.monthlyBudget || 0; 
-
+    // Fetch ALL transactions for the "Recent" list
     const transactions = await db.transaction.findMany({
-      where: { 
-        userId: userId,
-        accountId: defaultAccount?.id
-      },
+      where: { userId: userId, accountId: defaultAccount?.id },
       orderBy: { date: "desc" }, 
       include: { account: { select: { name: true } } }
     });
 
+    // --- MATH FOR "THIS MONTH" ONLY ---
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -124,15 +114,16 @@ export async function getDashboardData(mobileUserId = null) {
       const amount = Number(t.amount);
       const txDate = new Date(t.date);
 
+      // ONLY add to Pie Chart and Totals if it happened THIS MONTH
       if (txDate >= startOfMonth && txDate <= endOfMonth) {
         if (t.type === "INCOME") {
           income += Math.abs(amount);
         } else if (t.type === "EXPENSE") {
           expense += Math.abs(amount);
 
-          let rawCat = t.category || 'Uncategorized';
-          let cleanCat = rawCat.toLowerCase().replace(/-/g, ' ');
-          let formattedCat = cleanCat.replace(/\b\w/g, char => char.toUpperCase());
+          let formattedCat = (t.category || 'Uncategorized')
+            .toLowerCase().replace(/-/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
 
           categoryTotals[formattedCat] = (categoryTotals[formattedCat] || 0) + Math.abs(amount);
         }
@@ -146,16 +137,14 @@ export async function getDashboardData(mobileUserId = null) {
       color: colors[index % colors.length],
     }));
 
-    const budgetPercentage = budgetLimit > 0 ? Math.min((expense / budgetLimit) * 100, 100) : 0;
-
     return {
-      totalBalance,
+      totalBalance: accounts.reduce((sum, a) => sum + Number(a.balance), 0),
       accounts: accounts.map(serializeTransaction),     
       income,           
       expense,          
       transactions: transactions.map(serializeTransaction),     
-      budgetLimit,      
-      budgetPercentage, 
+      budgetLimit: defaultAccount?.monthlyBudget || 0,      
+      budgetPercentage: defaultAccount?.monthlyBudget > 0 ? Math.min((expense / defaultAccount.monthlyBudget) * 100, 100) : 0, 
       pieData           
     };
 }

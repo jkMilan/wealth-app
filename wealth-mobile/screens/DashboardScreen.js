@@ -119,6 +119,11 @@ export default function DashboardScreen({ navigation }) {
     );
   };
 
+  const pieData = dashboardData.pieData || [];
+  const budgetLimit = dashboardData.budgetLimit || 0;
+  const budgetSpent = dashboardData.expense || 0;
+  const budgetPercentage = dashboardData.budgetPercentage || 0;
+
   if (loading) {
     return (
       <View className="flex-1 bg-zinc-900 justify-center items-center">
@@ -129,63 +134,68 @@ export default function DashboardScreen({ navigation }) {
 
   return (
     <View className="flex-1 bg-zinc-900 px-4 pt-6">
-      <ScrollView showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}>
-        
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6">
-          <TouchableOpacity activeOpacity={0.8} onPress={() => { if (dashboardData.accounts?.[0]) { navigation.navigate('AccountDetails', { accountId: dashboardData.accounts[0].id, accountName: dashboardData.accounts[0].name }); } }} className="bg-blue-600 rounded-3xl p-6 mr-4 w-72 shadow-lg shadow-blue-500/30 justify-between">
-            <View>
-              <View className="flex-row justify-between items-center mb-1">
-                <Text className="text-blue-200 text-sm font-medium uppercase tracking-wider">{dashboardData.accounts?.[0]?.name || 'Main Account'}</Text>
-                <View className="bg-blue-500/50 px-2 py-0.5 rounded"><Text className="text-white text-[10px] font-bold uppercase tracking-wider">Default</Text></View>
-              </View>
-              <Text className="text-white text-3xl font-bold">LKR {Number(dashboardData.accounts?.[0]?.balance || 0).toFixed(2)}</Text>
-            </View>
-          </TouchableOpacity>
-
-          {dashboardData.accounts?.slice(1).map((account) => (
-            <TouchableOpacity key={account.id} activeOpacity={0.8} onPress={() => navigation.navigate('AccountDetails', { accountId: account.id, accountName: account.name })} className="bg-zinc-800 rounded-3xl p-6 mr-4 w-64 border border-zinc-700/50 justify-between">
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}
+      >
+        {/* --- ACCOUNT CARDS (Restored) --- */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 h-40">
+          {dashboardData.accounts?.map((account, index) => (
+            <TouchableOpacity 
+              key={account.id}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('AccountDetails', { accountId: account.id, accountName: account.name })}
+              className={`${index === 0 && account.isDefault ? 'bg-blue-600 shadow-blue-500/30' : 'bg-zinc-800 border-zinc-700/50'} rounded-3xl p-6 mr-4 w-72 shadow-lg justify-between h-36`}
+            >
               <View>
-                <Text className="text-zinc-400 text-sm font-medium mb-1 uppercase tracking-wider">{account.name}</Text>
-                <Text className="text-white text-2xl font-bold">LKR {Number(account.balance).toFixed(2)}</Text>
+                <View className="flex-row justify-between items-center mb-1">
+                  <Text className={`${index === 0 && account.isDefault ? 'text-blue-200' : 'text-zinc-400'} text-sm font-medium uppercase`}>
+                    {account.name}
+                  </Text>
+                  {account.isDefault && (
+                    <View className="bg-white/20 px-2 py-0.5 rounded">
+                      <Text className="text-white text-[10px] font-bold">DEFAULT</Text>
+                    </View>
+                  )}
+                </View>
+                <Text className="text-white text-3xl font-bold">
+                  LKR {Number(account.balance).toFixed(2)}
+                </Text>
               </View>
-              <TouchableOpacity className="mt-4 bg-zinc-700/50 py-2 rounded-xl items-center border border-zinc-600" onPress={() => handleSetDefault(account.id, account.name)}>
-                <Text className="text-zinc-300 text-xs font-bold uppercase tracking-wider">Set as Default</Text>
-              </TouchableOpacity>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
+        {/* --- BUDGET CARD --- */}
         <View className="bg-zinc-800 rounded-3xl p-6 mb-6 border border-zinc-700/50">
-          <View className="flex-row justify-between items-center mb-2">
-            <Text className="text-white font-bold text-lg">Monthly Budget</Text>
-            <TouchableOpacity onPress={() => setBudgetModalVisible(true)} className="p-2 -mr-2">
-              <Ionicons name="pencil" size={18} color="#9ca3af" />
-            </TouchableOpacity>
-          </View>
-          <Text className="text-zinc-400 text-sm mb-4">
-            LKR {dashboardData.expense.toFixed(2)} of LKR {dashboardData.budgetLimit.toFixed(2)} spent
-          </Text>
-          <View className="h-3 w-full bg-zinc-700 rounded-full overflow-hidden">
-            <View className={`h-full rounded-full ${dashboardData.budgetPercentage > 90 ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${dashboardData.budgetPercentage}%` }} />
-          </View>
-          <Text className="text-zinc-500 text-xs text-right mt-2 font-medium">{dashboardData.budgetPercentage.toFixed(1)}% used</Text>
+           <View className="flex-row justify-between items-center mb-2">
+             <Text className="text-white font-bold text-lg">Monthly Budget</Text>
+             <TouchableOpacity onPress={() => setBudgetModalVisible(true)} className="p-2 -mr-2">
+               <Ionicons name="pencil" size={18} color="#9ca3af" />
+             </TouchableOpacity>
+           </View>
+           <Text className="text-zinc-400 text-sm mb-4">
+             LKR {budgetSpent.toFixed(2)} of LKR {budgetLimit.toFixed(2)} spent
+           </Text>
+           <View className="h-3 w-full bg-zinc-700 rounded-full overflow-hidden">
+             <View 
+               className={`h-full rounded-full ${budgetPercentage > 90 ? 'bg-red-500' : 'bg-blue-500'}`}
+               style={{ width: `${budgetPercentage}%` }} 
+             />
+           </View>
+           <Text className="text-zinc-500 text-xs text-right mt-2 font-medium">{budgetPercentage.toFixed(1)}% used</Text>
         </View>
 
-        <View className="flex-row justify-between mb-6">
-          <View className="bg-zinc-800 rounded-2xl p-4 flex-1 mr-2 border border-zinc-700/50">
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="trending-up" size={16} color="#4ade80" />
-              <Text className="text-zinc-400 text-xs ml-2 uppercase tracking-wider">Income</Text>
-            </View>
-            <Text className="text-green-400 text-xl font-bold">LKR {dashboardData.income?.toFixed(2) || '0.00'}</Text>
-          </View>
-          <View className="bg-zinc-800 rounded-2xl p-4 flex-1 ml-2 border border-zinc-700/50">
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="trending-down" size={16} color="#f87171" />
-              <Text className="text-zinc-400 text-xs ml-2 uppercase tracking-wider">Expenses</Text>
-            </View>
-            <Text className="text-red-400 text-xl font-bold">LKR {dashboardData.expense?.toFixed(2) || '0.00'}</Text>
-          </View>
+        {/* --- INCOME / EXPENSE BOXES --- */}
+        <View className="flex-row justify-between mb-8">
+           <View className="bg-zinc-800 rounded-2xl p-4 flex-1 mr-2 border border-zinc-700/50">
+             <Text className="text-zinc-400 text-xs mb-1 uppercase">Income</Text>
+             <Text className="text-green-400 text-xl font-bold">LKR {dashboardData.income.toFixed(2)}</Text>
+           </View>
+           <View className="bg-zinc-800 rounded-2xl p-4 flex-1 ml-2 border border-zinc-700/50">
+             <Text className="text-zinc-400 text-xs mb-1 uppercase">Expenses</Text>
+             <Text className="text-red-400 text-xl font-bold">LKR {dashboardData.expense.toFixed(2)}</Text>
+           </View>
         </View>
 
         {dashboardData.pieData.length > 0 && (
