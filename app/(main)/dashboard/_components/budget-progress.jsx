@@ -1,15 +1,14 @@
 "use client";
 
-import React from 'react'
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Check, X } from 'lucide-react';
+import { Check, X, Pencil, Trash } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Pencil } from 'lucide-react';
 import useFetch from '@/hooks/use-fetch';
-import { updateBudget } from '@/actions/budget';
+import { updateBudget, deleteBudget } from '@/actions/budget';
 import { toast } from 'sonner';
 
 const BudgetProgress = ({ initialBudget, currentExpanses, accountId }) => {
@@ -47,77 +46,119 @@ const BudgetProgress = ({ initialBudget, currentExpanses, accountId }) => {
         }
     }, [updatedBudget]);
 
-    useEffect(() => {
-        if (error) {
-            toast.error(error.message || "Failed to update budget");
-        }
-    }, [error]);
+    const {
+        loading: isDeleting,
+        fn: deleteBudgetFn,
+        data: deletedBudget,
+        error: deleteError,
+    } = useFetch(deleteBudget);
 
-    const hamdlerCancel = () => {
+    useEffect(() => {
+        if (error || deleteError) {
+            toast.error(error?.message || deleteError?.message || "Failed to update budget");
+        }
+    }, [error, deleteError]);
+
+    const handleCancel = () => {
         setNewBudget(initialBudget?.amount?.toString() || "");
         setIsEditing(false);
     };
 
+    const handleResetBudget = async () => {
+        if (window.confirm("Are you sure you want to reset and remove this budget?")) {
+            await deleteBudgetFn(accountId);
+            setIsEditing(false); 
+            setNewBudget(""); 
+            toast.success("Budget has been reset");
+        }
+    };
+
     return (
         <Card>
+            {/* 1. HEADER: Title on the left, Buttons on the far right */}
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <div className="flex-1">
-                    <CardTitle>Monthly Budget (Default Account)</CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                        {isEditing ? (
-                            <div className="flex items-center gap-2">
-                                <Input
-                                    type="number"
-                                    value={newBudget}
-                                    onChange={(e) => setNewBudget(e.target.value)}
-                                    className="w-32"
-                                    placeholder="Enter amount"
-                                    autoFocus
-                                    disabled={isLoading}
+                <CardTitle className="text-sm sm:text-base font-medium">Monthly Budget (Default Account)</CardTitle>
+
+                {/* Only show these action buttons if we are NOT editing */}
+                {!isEditing && (
+                    <div className="flex items-center gap-2">
+                        {/* Show Delete button only if a budget exists */}
+                        {initialBudget && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 w-8"
+                                onClick={handleResetBudget}
+                                disabled={isDeleting}
+                                title="Reset Budget"
+                            >
+                                <Trash className="h-4 w-4" />
+                            </Button>
+                        )}
+                        
+                        {/* Edit Button (Styled as outline to match the image perfectly) */}
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setIsEditing(true)}
+                        >
+                            <Pencil className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
+            </CardHeader>
+
+            {/* 2. CONTENT: Input Box OR Progress Bar */}
+            <CardContent>
+                {isEditing ? (
+                    // EDIT MODE
+                    <div className="flex items-center gap-2 pt-2">
+                        <Input
+                            type="number"
+                            value={newBudget}
+                            onChange={(e) => setNewBudget(e.target.value)}
+                            className="w-32"
+                            placeholder="Enter amount"
+                            autoFocus
+                            disabled={isLoading}
+                        />
+                        <Button variant="ghost" size="icon" onClick={handleUpdateBudget} disabled={isLoading}>
+                            <Check className="h-4 w-4 text-green-500" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={handleCancel} disabled={isLoading}>
+                            <X className="h-4 w-4 text-red-500" />
+                        </Button>
+                    </div>
+                ) : (
+                    // VIEW MODE
+                    <div className="pt-2">
+                        {initialBudget ? (
+                            <div className="space-y-3">
+                                {/* The text description sits right above the bar */}
+                                <CardDescription className="text-sm font-medium">
+                                    LKR {currentExpanses.toFixed(2)} of LKR {initialBudget.amount.toFixed(2)} spent
+                                </CardDescription>
+                                
+                                <Progress 
+                                    value={percentUsed} 
+                                    className={
+                                        percentUsed >= 90 
+                                            ? "[&>div]:bg-red-500" 
+                                            : percentUsed >= 80 
+                                            ? "[&>div]:bg-yellow-500" 
+                                            : "[&>div]:bg-green-500"
+                                    }
                                 />
-                                <Button variant="ghost" size="icon" onClick={handleUpdateBudget} disabled={isLoading}>
-                                    <Check className="h-4 w-4 text-green-500" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={hamdlerCancel} disabled={isLoading}>
-                                    <X className="h-4 w-4 text-red-500" />
-                                </Button>
+                                <p className="text-xs text-muted-foreground text-right">
+                                    {percentUsed.toFixed(1)}% used
+                                </p>
                             </div>
                         ) : (
-                            <>
-                                <CardDescription>
-                                    {initialBudget
-                                        ? `LKR ${currentExpanses.toFixed(
-                                            2
-                                        )} of LKR ${initialBudget.amount.toFixed(2)} spent`
-                                        : "No budget set"}
-                                </CardDescription>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setIsEditing(true)}
-                                >
-                                    <Pencil className="h-3 w-3" />
-                                </Button>
-                            </>
+                            <CardDescription className="text-sm text-muted-foreground">
+                                No budget set
+                            </CardDescription>
                         )}
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent>
-                {initialBudget && (
-                    <div className="space-y-2">
-                        <Progress
-                            value={percentUsed}
-                            extraStyles={`${percentUsed >= 90
-                                    ? "bg-red-500"
-                                    : percentUsed >= 75
-                                        ? "bg-yellow-500"
-                                        : "bg-green-500"
-                                }`}
-                        />
-                        <p className="text-sm text-muted-foreground text-right">
-                            {percentUsed.toFixed(1)}% used
-                        </p>
                     </div>
                 )}
             </CardContent>
@@ -125,4 +166,4 @@ const BudgetProgress = ({ initialBudget, currentExpanses, accountId }) => {
     );
 };
 
-export default BudgetProgress
+export default BudgetProgress;

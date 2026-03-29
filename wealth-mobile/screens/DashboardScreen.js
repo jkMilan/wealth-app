@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, ActivityIndicator, RefreshControl, ScrollView, Dimensions, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -7,7 +8,7 @@ import { PieChart } from 'react-native-gifted-charts';
 const screenWidth = Dimensions.get("window").width;
 
 export default function DashboardScreen({ navigation }) {
-  const [dashboardData, setDashboardData] = useState({ totalBalance: 0, accounts: [], income: 0, expense: 0, transactions: [], budgetAmount: 70000 }); 
+  const [dashboardData, setDashboardData] = useState({ totalBalance: 0, accounts: [], income: 0, expense: 0, transactions: [], budgetAmount: 0 }); 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
@@ -71,9 +72,11 @@ export default function DashboardScreen({ navigation }) {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchDashboardData();
+    }, [])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -180,9 +183,9 @@ export default function DashboardScreen({ navigation }) {
   }
 
   const pieData = getPieData();
-  const budgetLimit = dashboardData.budgetAmount > 0 ? dashboardData.budgetAmount : 100000;
+  const budgetLimit = dashboardData.budgetAmount || 0;
   const budgetSpent = dashboardData.expense || 0;
-  const budgetPercentage = Math.min((budgetSpent / budgetLimit) * 100, 100);
+  const budgetPercentage = budgetLimit > 0 ? Math.min((budgetSpent / budgetLimit) * 100, 100) : 0;
 
   return (
     <View className="flex-1 bg-zinc-900 px-4 pt-6">
@@ -272,44 +275,6 @@ export default function DashboardScreen({ navigation }) {
           </Text>
         </View>
 
-        {/* --- SET BUDGET MODAL (Hidden until pencil is clicked) --- */}
-        <Modal animationType="slide" transparent={true} visible={budgetModalVisible}>
-          <View className="flex-1 justify-end bg-black/60">
-            <View className="bg-zinc-900 p-6 rounded-t-3xl border-t border-zinc-800">
-              <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-white text-xl font-bold">Set Monthly Budget</Text>
-                <TouchableOpacity onPress={() => setBudgetModalVisible(false)}>
-                  <Ionicons name="close" size={24} color="#71717a" />
-                </TouchableOpacity>
-              </View>
-
-              <Text className="text-zinc-400 mb-2">Target Amount (LKR)</Text>
-              <TextInput 
-                value={newBudget}
-                onChangeText={setNewBudget}
-                keyboardType="numeric"
-                className="bg-zinc-800 p-4 rounded-xl text-white mb-6 border border-zinc-700 text-lg font-bold"
-                placeholder="e.g. 70000"
-                placeholderTextColor="#52525b"
-                autoFocus
-              />
-
-              <TouchableOpacity 
-                onPress={handleSaveBudget}
-                disabled={isUpdatingBudget}
-                className={`bg-blue-600 p-4 rounded-xl items-center ${isUpdatingBudget ? 'opacity-50' : ''}`}
-              >
-                {isUpdatingBudget ? (
-                  <ActivityIndicator color="white" />
-                ) : (
-                  <Text className="text-white font-bold text-lg">Save Budget</Text>
-                )}
-              </TouchableOpacity>
-              <View className="h-10" />
-            </View>
-          </View>
-        </Modal>
-
         <View className="flex-row justify-between mb-6">
           <View className="bg-zinc-800 rounded-2xl p-4 flex-1 mr-2 border border-zinc-700/50">
             <View className="flex-row items-center mb-2">
@@ -385,6 +350,44 @@ export default function DashboardScreen({ navigation }) {
           </View>
         )}
       </ScrollView>
+
+      {/* --- SET BUDGET MODAL (Hidden until pencil is clicked) --- */}
+        <Modal animationType="slide" transparent={true} visible={budgetModalVisible}>
+          <View className="flex-1 justify-end bg-black/60">
+            <View className="bg-zinc-900 p-6 rounded-t-3xl border-t border-zinc-800">
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-white text-xl font-bold">Set Monthly Budget</Text>
+                <TouchableOpacity onPress={() => setBudgetModalVisible(false)}>
+                  <Ionicons name="close" size={24} color="#71717a" />
+                </TouchableOpacity>
+              </View>
+
+              <Text className="text-zinc-400 mb-2">Target Amount (LKR)</Text>
+              <TextInput 
+                value={newBudget}
+                onChangeText={setNewBudget}
+                keyboardType="numeric"
+                className="bg-zinc-800 p-4 rounded-xl text-white mb-6 border border-zinc-700 text-lg font-bold"
+                placeholder="e.g. 70000"
+                placeholderTextColor="#52525b"
+                autoFocus
+              />
+
+              <TouchableOpacity 
+                onPress={handleSaveBudget}
+                disabled={isUpdatingBudget}
+                className={`bg-blue-600 p-4 rounded-xl items-center ${isUpdatingBudget ? 'opacity-50' : ''}`}
+              >
+                {isUpdatingBudget ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-bold text-lg">Save Budget</Text>
+                )}
+              </TouchableOpacity>
+              <View className="h-10" />
+            </View>
+          </View>
+        </Modal>
     </View>
   );
 }

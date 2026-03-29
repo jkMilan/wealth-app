@@ -85,3 +85,26 @@ export async function updateBudget(accountId, amount) {
         return { success: false, error: error.message };
     }
 }
+
+export async function deleteBudget(accountId) {
+    try {
+        const user = await checkUser();
+        if (!user) throw new Error("Unauthorized");
+        
+        // Ensure accountId is present
+        if (!accountId) throw new Error("Account ID is required");
+
+        // Delete the budget linked to this specific account
+        await db.budget.delete({
+            where: {
+                accountId: accountId,
+            },
+        });
+
+        revalidatePath("/dashboard");
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting budget", error);
+        return { success: false, error: error.message };
+    }
+}
