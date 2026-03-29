@@ -54,6 +54,8 @@ export default function DashboardScreen({ navigation }) {
         body: JSON.stringify({ amount: newBudget, accountId: defaultAccountId })
       });
 
+      console.log("LIVE API DATA:", JSON.stringify(data, null, 2));
+
       if (response.ok) {
         setBudgetModalVisible(false);
         setNewBudget('');
@@ -120,9 +122,6 @@ export default function DashboardScreen({ navigation }) {
       </View>
     );
   }
-
-  // NOTE: We completely deleted the getPieData function and math logic here!
-  // The UI simply reads the values sent by the Next.js API.
 
   return (
     <View className="flex-1 bg-zinc-900 px-4 pt-6">

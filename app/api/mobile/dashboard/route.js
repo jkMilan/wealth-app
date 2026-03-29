@@ -24,7 +24,7 @@ export async function GET(req) {
     const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
     const defaultAccount = accounts.find(a => a.isDefault === true) || accounts[0];
 
-    // 2. Fetch Budget (Checks Account first, falls back to User if needed)
+    // 2. Fetch Budget
     const user = await db.user.findUnique({
       where: { id: userId },
       select: { monthlyBudget: true }
@@ -62,7 +62,7 @@ export async function GET(req) {
         } else if (t.type === "EXPENSE") {
           expense += Math.abs(amount);
 
-          // Build Pie Chart Categories dynamically on the backend
+          // Build Pie Chart Categories
           let rawCat = t.category || 'Uncategorized';
           let cleanCat = rawCat.toLowerCase().replace(/-/g, ' ');
           let formattedCat = cleanCat.replace(/\b\w/g, char => char.toUpperCase());
@@ -83,16 +83,16 @@ export async function GET(req) {
     // 7. Calculate Budget Percentage
     const budgetPercentage = budgetLimit > 0 ? Math.min((expense / budgetLimit) * 100, 100) : 0;
 
-    // 8. Send the ultimate pre-calculated package to the mobile app
+    // 8. Send to mobile app
     return NextResponse.json({
       totalBalance,
       accounts,     
-      income,           // Filtered for this month
-      expense,          // Filtered for this month
-      transactions,     // Sends history for the list view
+      income,           
+      expense,          
+      transactions,     
       budgetLimit,      
-      budgetPercentage, // Pre-calculated!
-      pieData           // Formatted and ready to draw!
+      budgetPercentage, 
+      pieData           
     }, { status: 200 });
 
   } catch (error) {
