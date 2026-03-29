@@ -19,7 +19,7 @@ async function DashboardPage() {
     budgetData = await getCurrentBudget(defaultAccount.id);
   }
 
-  const transactions = await getDashboardData();
+  const {transactions} = await getDashboardData();
 
   const defaultAccountTransactions = transactions?.filter(
     (t) => t.accountId === defaultAccount?.id
