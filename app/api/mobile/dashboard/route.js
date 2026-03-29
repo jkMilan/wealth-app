@@ -81,8 +81,12 @@ export async function GET(req) {
     // Calculate progress based on total monthly spending vs budget limit
     const budgetPercentage = budgetLimit > 0 ? Math.min((expense / budgetLimit) * 100, 100) : 0;
 
-    // Filter recent transactions specifically for the default account
+    // Filter recent transactions specifically for the default account AND for the current month
     const recentTransactions = defaultAccountTransactions
+      .filter(t => {
+        const d = new Date(t.date);
+        return d.getMonth() === currentDate.getMonth() && d.getFullYear() === currentDate.getFullYear();
+      })
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 10);
 

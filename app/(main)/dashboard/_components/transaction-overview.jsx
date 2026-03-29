@@ -19,19 +19,20 @@ const DashboardOverview = ({accounts, transactions}) => {
         (t) => t.accountId === selectedAccountId
     );
 
-    const recentTransactions = accountTransactions
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 5);
-
     const currentDate = new Date();
-    const currentMonthExpenses = accountTransactions.filter((t) => {
+    const currentMonthTransactions = accountTransactions.filter((t) => {
         const transactionDate = new Date(t.date);
         return (
-            t.type === "EXPENSE" &&
             transactionDate.getMonth() === currentDate.getMonth() &&
             transactionDate.getFullYear() === currentDate.getFullYear()
         );
     });
+
+    const recentTransactions = currentMonthTransactions
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+
+    const currentMonthExpenses = currentMonthTransactions.filter((t) => t.type === "EXPENSE");
 
     const expenseByCategory = currentMonthExpenses.reduce((acc, transaction) => {
         const category = transaction.category;
