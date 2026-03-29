@@ -26,6 +26,7 @@ export default function DashboardScreen({ navigation }) {
       const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/dashboard', {
         headers: { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' }
       });
+      
       const data = await response.json();
       
       if (response.ok) {
@@ -53,8 +54,6 @@ export default function DashboardScreen({ navigation }) {
         headers: { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: newBudget, accountId: defaultAccountId })
       });
-
-      console.log("LIVE API DATA:", JSON.stringify(data, null, 2));
 
       if (response.ok) {
         setBudgetModalVisible(false);
