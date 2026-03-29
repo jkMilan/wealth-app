@@ -94,9 +94,9 @@ export async function getDashboardData(mobileUserId = null) {
     });
     const defaultAccount = accounts.find(a => a.isDefault === true) || accounts[0];
 
-    // Fetch ALL transactions for the "Recent" list
+    // Fetch ALL transactions for the user so the dashboard dropdown works
     const transactions = await db.transaction.findMany({
-      where: { userId: userId, accountId: defaultAccount?.id },
+      where: { userId: userId },
       orderBy: { date: "desc" }, 
       include: { account: { select: { name: true } } }
     });

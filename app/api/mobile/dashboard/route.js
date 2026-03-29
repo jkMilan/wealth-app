@@ -25,7 +25,7 @@ export async function GET(req) {
     const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
     const defaultAccount = accounts.find(a => a.isDefault === true) || accounts[0];
 
-    // 2. Step 2 Fix: Fetch Budget from the shared 'Budget' model
+    // 2. Fetch Budget from the shared 'Budget' model
     // This ensures web and mobile view the same budget limit
     const budget = await db.budget.findFirst({
       where: {
@@ -35,7 +35,7 @@ export async function GET(req) {
     });
     const budgetLimit = budget ? Number(budget.amount) : 0;
 
-    // 3. Step 4 Fix: Global Calculations
+    // 3. Global Calculations
     // Fetch all user transactions to calculate accurate Income/Expenses/Pie Chart
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -46,11 +46,14 @@ export async function GET(req) {
       include: { account: { select: { name: true } } }
     });
 
+    // We filter for default account below to match web logic where dashboard targets mostly default account.
+    const defaultAccountTransactions = allTransactions.filter(t => t.accountId === defaultAccount?.id);
+
     let income = 0;
     let expense = 0;
     const categoryTotals = {};
 
-    allTransactions.forEach(t => {
+    defaultAccountTransactions.forEach(t => {
       const amount = Number(t.amount);
       const txDate = new Date(t.date);
 
@@ -68,7 +71,7 @@ export async function GET(req) {
       }
     });
 
-    const colors = ['#facc15', '#ec4899', '#7f1d1d', '#000000', '#14b8a6', '#3b82f6', '#ef4444', '#f97316'];
+    const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#FF0080', '#FF0000', '#000000', '#8B0000', '#008000'];
     const pieData = Object.keys(categoryTotals).map((key, index) => ({
       text: key,
       value: categoryTotals[key],
@@ -79,8 +82,7 @@ export async function GET(req) {
     const budgetPercentage = budgetLimit > 0 ? Math.min((expense / budgetLimit) * 100, 100) : 0;
 
     // Filter recent transactions specifically for the default account
-    const recentTransactions = allTransactions
-      .filter(t => t.accountId === defaultAccount?.id)
+    const recentTransactions = defaultAccountTransactions
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 10);
 
@@ -99,4 +101,4 @@ export async function GET(req) {
     console.error("MOBILE DASHBOARD ERROR:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+}
