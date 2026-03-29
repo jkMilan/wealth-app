@@ -23,8 +23,10 @@ export async function GET(req) {
 
     const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
 
+    const defaultAccount = accounts.find(a => a.isDefault) || accounts[0];
+
     const transactions = await db.transaction.findMany({
-      where: { userId: userId },
+      where: { userId: userId, accountId: defaultAccount.id },
       orderBy: { date: "desc" }, 
       include: {
         account: {
@@ -38,15 +40,22 @@ export async function GET(req) {
       select: { monthlyBudget: true }
     });
 
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
     let income = 0;
     let expense = 0;
 
     transactions.forEach(t => {
       const amount = Number(t.amount);
-      if (t.type === "INCOME") {
-        income += Math.abs(amount);
-      } else if (t.type === "EXPENSE") {
-        expense += Math.abs(amount);
+      const txDate = new Date(t.date);
+      if (txDate >= startOfMonth && txDate <= endOfMonth) {
+        if (t.type === "INCOME") {
+          income += Math.abs(amount);
+        } else if (t.type === "EXPENSE") {
+          expense += Math.abs(amount);
+        }
       }
     });
 
@@ -56,7 +65,7 @@ export async function GET(req) {
       income,
       expense,
       transactions,
-      Budget: user?.monthlyBudget || 0
+      Budget: defaultAccount.monthlyBudget || 0
     }, { status: 200 });
 
   } catch (error) {

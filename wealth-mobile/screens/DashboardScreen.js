@@ -183,8 +183,8 @@ export default function DashboardScreen({ navigation }) {
   }
 
   const pieData = getPieData();
-  const budgetLimit = dashboardData.budgetAmount || 0;
-  const budgetSpent = dashboardData.expense || 0;
+  const budgetLimit = dashboardData.budgetAmount;
+  const budgetSpent = dashboardData.expense;
   const budgetPercentage = budgetLimit > 0 ? Math.min((budgetSpent / budgetLimit) * 100, 100) : 0;
 
   return (

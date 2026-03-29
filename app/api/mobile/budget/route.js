@@ -16,10 +16,12 @@ export async function POST(req) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const { amount } = await req.json();
+    const { amount, accountId } = await req.json();
 
-    await db.user.update({
-      where: { id: payload.userId },
+    if (!accountId) return NextResponse.json({ error: "Account ID is required" }, { status: 400 });
+
+    await db.account.update({
+      where: { id: accountId },
       data: { monthlyBudget: parseFloat(amount) }
     });
 
