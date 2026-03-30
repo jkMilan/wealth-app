@@ -10,21 +10,17 @@ export async function POST(req) {
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
       const payload = await decrypt(token);
-      if (payload?.userId) userId = payload.userId;
+      if (payload && payload.userId) {
+        userId = payload.userId;
+      }
     }
 
     const body = await req.json();
-    const { message, sender, secretKey, bodyUserId } = body; 
+    const { message, sender, secretKey } = body;
 
     if (!userId && secretKey !== "Milan2908") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const finalUserId = userId || bodyUserId;
-    if (!finalUserId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
-    }
-
     const rawUrl = (process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").trim().replace(/\/$/, "");
     const finalUrl = `${rawUrl}/api/ml/sms`;
 
@@ -34,13 +30,20 @@ export async function POST(req) {
         body: JSON.stringify({ message, sender })
     });
 
-    if (!pythonResponse.ok) throw new Error(`ML Service Error: ${pythonResponse.statusText}`);
+    if (!pythonResponse.ok) {
+        throw new Error(`ML Service Error: ${pythonResponse.statusText}`);
+    }
 
-    const { amount, type, merchant, category } = await pythonResponse.json();
+    const aiData = await pythonResponse.json();
+    const { amount, type, merchant, category } = aiData;
 
     if (amount > 0) {
+      const accountQuery = userId 
+        ? { userId: userId, isDefault: true } 
+        : { isDefault: true };
+
       const defaultAccount = await db.account.findFirst({
-        where: { userId: finalUserId, isDefault: true } 
+        where: accountQuery
       });
 
       if (!defaultAccount) {
@@ -58,7 +61,7 @@ export async function POST(req) {
             type: type,
             category: category, 
             accountId: defaultAccount.id,
-            userId: finalUserId 
+            userId: defaultAccount.userId 
           }
         });
 
