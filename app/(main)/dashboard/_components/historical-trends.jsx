@@ -6,16 +6,14 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 
 const HistoricalTrends = ({ transactions }) => {
-    // Process data for the last 6 months
     const chartData = useMemo(() => {
         const today = new Date();
         const months = [];
 
-        // Create an array of the last 6 months
         for (let i = 5; i >= 0; i--) {
             const date = subMonths(today, i);
             months.push({
-                month: format(date, "MMM yyyy"), // e.g., "Jan 2026"
+                month: format(date, "MMM yyyy"), 
                 startDate: startOfMonth(date),
                 endDate: endOfMonth(date),
                 income: 0,
@@ -23,11 +21,9 @@ const HistoricalTrends = ({ transactions }) => {
             });
         }
 
-        // Loop through transactions and add them to the correct month
         transactions.forEach((t) => {
             const transactionDate = new Date(t.date);
             
-            // Find which month this transaction belongs to
             const monthData = months.find((m) => 
                 isWithinInterval(transactionDate, { start: m.startDate, end: m.endDate })
             );

@@ -87,10 +87,26 @@ export default function SubscriptionsScreen({ navigation }) {
   };
 
   const deleteSubscription = async (id) => {
-    // Here you would call your API to delete or pause the recurring transaction
-    Alert.alert("Success", "Subscription cancelled successfully.");
-    setSubscriptions(prev => prev.filter(s => s.id !== id));
-  };
+  try {
+    const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
+    const session = JSON.parse(storedSession);
+
+    const response = await fetch(`https://wealth-app-three.vercel.app/api/mobile/subscriptions?id=${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${session.token}` }
+    });
+
+    if (response.ok) {
+      Alert.alert("Success", "Subscription cancelled successfully.");
+      fetchSubscriptions(); 
+    } else {
+      const data = await response.json();
+      Alert.alert("Error", data.error || "Failed to cancel subscription.");
+    }
+  } catch (error) {
+    Alert.alert("Network Error", "Could not connect to the server.");
+  }
+};
 
   if (loading) {
     return (
@@ -123,7 +139,7 @@ export default function SubscriptionsScreen({ navigation }) {
 
         <View className="flex-row justify-between items-end mb-4 px-1">
           <Text className="text-white text-xl font-bold">Your Subscriptions</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('LogExpense')}>
+          <TouchableOpacity onPress={() => navigation.navigate('Add')}>
             <Text className="text-blue-500 font-bold">+ Add New</Text>
           </TouchableOpacity>
         </View>

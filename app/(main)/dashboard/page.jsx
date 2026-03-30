@@ -7,8 +7,6 @@ import AccountCard from './_components/account-card';
 import { getCurrentBudget } from '@/actions/budget';
 import BudgetProgress from './_components/budget-progress';
 import DashboardOverview from './_components/transaction-overview';
-import HistoricalTrends from './_components/historical-trends';
-import ExportButton from '@/components/export-button';
 
 async function DashboardPage() {
   const accounts = await getUserAccounts();
@@ -62,7 +60,6 @@ async function DashboardPage() {
         />
       </Suspense>
 
-      <HistoricalTrends transactions={defaultAccountTransactions} />
 
     </div>
   );

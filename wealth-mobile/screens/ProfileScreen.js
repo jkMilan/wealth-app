@@ -1,137 +1,91 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 
 export default function ProfileScreen() {
+  const [user, setUser] = useState(null);
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    async function loadUserData() {
-      try {
-        const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
-        if (storedSession) {
-          const session = JSON.parse(storedSession);
-          setName(session.user?.name || 'JKMilan'); 
-          setEmail(session.user?.email || 'jeyakumarmilan@gmail.com');
-        }
-      } catch (error) {
-        console.error("Failed to load session", error);
-      } finally {
-        setInitializing(false);
+  const fetchProfile = async () => {
+    try {
+      const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
+      const session = JSON.parse(storedSession);
+
+      const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/profile', {
+        headers: { 'Authorization': `Bearer ${session.token}` }
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setUser(data);
+        setName(data.name);
       }
-    }
-    loadUserData();
-  }, []);
-
-  const handleSave = async () => {
-    setLoading(true);
-    setTimeout(() => {
+    } catch (error) {
+      console.error('Profile fetch failed:', error);
+    } finally {
       setLoading(false);
-      Alert.alert("Success", "Profile updated successfully!");
-    }, 1000); 
+    }
   };
 
-  const handleLogout = async () => {
-    Alert.alert(
-      "Log Out",
-      "Are you sure you want to log out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Log Out", 
-          style: "destructive",
-          onPress: async () => {
-            await SecureStore.deleteItemAsync('wealth_ai_session');
-            Alert.alert("Logged Out", "Please restart the app to clear session."); 
-          }
-        }
-      ]
-    );
+  const handleUpdate = async () => {
+    if (!name.trim()) return Alert.alert("Error", "Name cannot be empty");
+    setUpdating(true);
+    try {
+      const session = JSON.parse(await SecureStore.getItemAsync('wealth_ai_session'));
+      const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/profile', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${session.token}`,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ name })
+      });
+
+      if (response.ok) {
+        Alert.alert("Success", "Profile updated successfully!");
+        fetchProfile(); // Refresh UI
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to update profile.");
+    } finally {
+      setUpdating(false);
+    }
   };
 
-  if (initializing) {
-    return (
-      <View className="flex-1 bg-zinc-900 justify-center items-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
-      </View>
-    );
-  }
+  useEffect(() => { fetchProfile(); }, []);
+
+  if (loading) return <View className="flex-1 bg-zinc-900 justify-center"><ActivityIndicator color="#3b82f6" /></View>;
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1 bg-zinc-900">
-      <ScrollView className="flex-1 px-4 pt-6" contentContainerStyle={{ paddingBottom: 40 }}>
-        
-        <Text className="text-2xl font-bold text-white mb-6">Account Settings</Text>
-
-        <View className="bg-zinc-800 rounded-3xl p-6 border border-zinc-700/50 mb-6 items-center shadow-sm">
-          
-          <View className="relative mb-6">
-            <View className="w-24 h-24 bg-blue-100 rounded-full items-center justify-center border-4 border-zinc-800 shadow-md">
-              <Text className="text-blue-600 text-4xl font-bold">{name.charAt(0).toUpperCase()}</Text>
-            </View>
-            <TouchableOpacity className="absolute bottom-0 right-0 bg-zinc-700 w-8 h-8 rounded-full items-center justify-center border-2 border-zinc-800 shadow-sm">
-              <Ionicons name="camera" size={16} color="white" />
-            </TouchableOpacity>
-          </View>
-
-          <Text className="text-white text-xl font-bold mb-1">{name}</Text>
-          <Text className="text-zinc-400 text-sm mb-6">{email}</Text>
-
-          <View className="w-full mb-4">
-            <Text className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Full Name</Text>
-            <TextInput
-              className="w-full bg-zinc-900/50 text-white px-4 py-4 rounded-xl border border-zinc-700 focus:border-blue-500 text-base"
-              value={name}
-              onChangeText={setName}
-              placeholder="Enter your full name"
-              placeholderTextColor="#71717a"
-            />
-          </View>
-
-          <View className="w-full mb-6">
-            <Text className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2 ml-1">Email Address</Text>
-            <TextInput
-              className="w-full bg-zinc-900/50 text-white px-4 py-4 rounded-xl border border-zinc-700 focus:border-blue-500 text-base"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter your email"
-              placeholderTextColor="#71717a"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-
-          <TouchableOpacity 
-            className="w-full bg-blue-600 py-4 rounded-xl items-center shadow-lg shadow-blue-500/30"
-            onPress={handleSave}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text className="text-white font-bold text-lg">Save Changes</Text>
-            )}
-          </TouchableOpacity>
+    <ScrollView className="flex-1 bg-zinc-900 px-6 pt-10">
+      <View className="items-center mb-10">
+        <View className="w-24 h-24 bg-zinc-800 rounded-full items-center justify-center mb-4 border border-zinc-700">
+           <Ionicons name="person" size={48} color="#71717a" />
         </View>
+        <Text className="text-white text-2xl font-bold">{user?.name || "User"}</Text>
+        <Text className="text-zinc-500">{user?.email}</Text>
+      </View>
 
-        <View className="bg-zinc-800 rounded-3xl p-4 border border-zinc-700/50">
-          <TouchableOpacity 
-            className="flex-row items-center justify-between p-4"
-            onPress={handleLogout}
-          >
-            <View className="flex-row items-center">
-              <Ionicons name="log-out-outline" size={24} color="#ef4444" />
-              <Text className="text-red-400 font-bold text-lg ml-3">Log Out</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#52525b" />
-          </TouchableOpacity>
-        </View>
-
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <View className="bg-zinc-800 p-6 rounded-3xl border border-zinc-700/50 mb-6 shadow-sm">
+        <Text className="text-zinc-400 mb-2 uppercase text-[10px] font-black tracking-widest">Display Name</Text>
+        <TextInput 
+          value={name} 
+          onChangeText={setName} 
+          placeholder="Enter your name"
+          placeholderTextColor="#52525b"
+          className="bg-zinc-900 p-4 rounded-xl text-white border border-zinc-700 mb-6 font-bold"
+        />
+        <TouchableOpacity 
+          onPress={handleUpdate} 
+          disabled={updating}
+          className={`bg-blue-600 p-4 rounded-xl items-center ${updating ? 'opacity-50' : ''}`}
+        >
+          {updating ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Save Changes</Text>}
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }

@@ -93,6 +93,7 @@ export default function App() {
                 component={LogExpenseScreen} 
                 options={{
                   tabBarLabel: () => null,
+                  tabBarLabel: "Add",
                   headerTitle: "Add Transaction",
                   tabBarIcon: ({ focused }) => (
                     <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#3b82f6', justifyContent: 'center', alignItems: 'center', marginBottom: 25, shadowColor: '#3b82f6', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 5, elevation: 5 }}>
