@@ -16,11 +16,17 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { message, sender, secretKey } = body;
+    const { message, sender, secretKey, bodyUserId } = body;
 
     if (!userId && secretKey !== "Milan2908") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const finalUserId = userId || bodyUserId;
+    if (!finalUserId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
     const rawUrl = (process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").trim().replace(/\/$/, "");
     const finalUrl = `${rawUrl}/api/ml/sms`;
 
@@ -34,13 +40,12 @@ export async function POST(req) {
         throw new Error(`ML Service Error: ${pythonResponse.statusText}`);
     }
 
-    const aiData = await pythonResponse.json();
-    const { amount, type, merchant, category } = aiData;
+    const { amount, type, merchant, category } = await pythonResponse.json();
 
     if (amount > 0) {
-      const accountQuery = userId 
-        ? { userId: userId, isDefault: true } 
-        : { isDefault: true };
+      // const accountQuery = userId 
+      //   ? { userId: userId, isDefault: true } 
+      //   : { isDefault: true };
 
       const defaultAccount = await db.account.findFirst({
         where: accountQuery
