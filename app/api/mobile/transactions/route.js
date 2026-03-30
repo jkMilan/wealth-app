@@ -13,9 +13,7 @@ export async function POST(req) {
 
     const { type, amount, accountId, category, date, description, isRecurring, recurringInterval } = await req.json();
 
-    // Use a transaction to ensure balance and transaction are updated together
     const result = await db.$transaction(async (tx) => {
-      // 1. Create the transaction
       const transaction = await tx.transaction.create({
         data: {
           userId: payload.userId,
@@ -31,7 +29,6 @@ export async function POST(req) {
         }
       });
 
-      // 2. Atomically update the account balance
       const balanceChange = type === "EXPENSE" ? -parseFloat(amount) : parseFloat(amount);
       await tx.account.update({
         where: { id: accountId },
