@@ -20,7 +20,7 @@ export async function POST(req) {
           userId: payload.userId,
           accountId,
           type,
-          amount,
+          amount: parseFloat(amount),
           category,
           date: new Date(date),
           description: description || "Mobile Transaction",
@@ -30,7 +30,7 @@ export async function POST(req) {
         }
       });
 
-      const balanceChange = type === "EXPENSE" ? -amount : amount;
+      const balanceChange = type === "EXPENSE" ? -parseFloat(amount) : parseFloat(amount);
       await tx.account.update({
         where: { id: accountId },
         data: { balance: { increment: balanceChange } }
