@@ -1,28 +1,22 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/prisma';
-import { decrypt } from '@/lib/auth';
+import { db } from '@/lib/prisma'; 
+
 
 export async function POST(req) {
   try {
-    let userId = null;
-    
-    const authHeader = req.headers.get("authorization");
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.split(" ")[1];
-      const payload = await decrypt(token);
-      if (payload && payload.userId) {
-        userId = payload.userId;
-      }
-    }
-
     const body = await req.json();
+    console.log("SUCCESS! RECEIVED SMS DATA:", body); 
+    
     const { message, sender, secretKey } = body;
 
-    if (!userId && secretKey !== "Milan2908") {
+    if (secretKey !== "Milan2908") {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
     const rawUrl = (process.env.ML_SERVICE_URL || "http://127.0.0.1:8000").trim().replace(/\/$/, "");
     const finalUrl = `${rawUrl}/api/ml/sms`;
+
+    console.log("SMS AI FETCH URL:", finalUrl);
 
     const pythonResponse = await fetch(finalUrl, {
         method: 'POST',
@@ -38,16 +32,13 @@ export async function POST(req) {
     const { amount, type, merchant, category } = aiData;
 
     if (amount > 0) {
-      const accountQuery = userId 
-        ? { userId: userId, isDefault: true } 
-        : { isDefault: true };
-
       const defaultAccount = await db.account.findFirst({
-        where: accountQuery
+        where: { isDefault: true } 
       });
 
       if (!defaultAccount) {
-        return NextResponse.json({ error: 'No default account found for this user' }, { status: 400 });
+        console.error("Error: No default account found in the database!");
+        return NextResponse.json({ error: 'No default account' }, { status: 400 });
       }
 
       const balanceChange = type === 'EXPENSE' ? -amount : amount;
@@ -70,6 +61,8 @@ export async function POST(req) {
             data: { balance: { increment: balanceChange } },
         });
       });
+
+      console.log(`Saved ${type}: Rs. ${amount} at ${merchant} | Category: ${category}`);
     }
 
     return NextResponse.json({ success: true, parsedAmount: amount, type, category });
