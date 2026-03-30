@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/prisma"; // Use the shared Prisma instance
-import { decrypt } from "@/lib/auth"; // For session verification
+import { db } from "@/lib/prisma"; 
+import { decrypt } from "@/lib/auth"; 
 
 export async function GET(req) {
   try {
@@ -9,14 +9,13 @@ export async function GET(req) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const token = authHeader.split(" ")[1];
-    const payload = await decrypt(token); // Decrypt token to get user context
+    const payload = await decrypt(token); 
     
     if (!payload || !payload.userId) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
     const userId = payload.userId;
 
-    // 1. Fetch all accounts for the user
     const accounts = await db.account.findMany({
       where: { userId: userId },
       orderBy: { isDefault: "desc" }, 
@@ -25,25 +24,22 @@ export async function GET(req) {
     const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
     const defaultAccount = accounts.find(a => a.isDefault === true) || accounts[0];
 
-    // 2. Fetch Budget from the shared 'Budget' model
-    // This ensures web and mobile view the same budget limit
-    const budget = await db.budget.findFirst({
+    const budgetRecord = await db.budget.findFirst({
       where: {
         userId: userId,
         accountId: defaultAccount?.id,
       },
     });
-    const budgetLimit = budget ? Number(budget.amount) : 0;
+    const budgetLimit = budgetRecord ? Number(budgetRecord.amount) : 0;
 
-    // 3. Global Calculations
-    // Fetch all user transactions to calculate accurate Income/Expenses/Pie Chart
-    const allTransactions = await db.transaction.findMany({
-      where: { userId: userId },
-      include: { account: { select: { name: true } } }
+    const allMonthTransactions = await db.transaction.findMany({
+      where: { 
+        userId: userId,
+        date: { gte: startOfMonth, lte: endOfMonth }
+      }
     });
 
-    // We filter for default account below to match web logic where dashboard targets mostly default account.
-    const defaultAccountTransactions = allTransactions.filter(t => t.accountId === defaultAccount?.id);
+    const defaultAccountTransactions = allMonthTransactions.filter(t => t.accountId === defaultAccount?.id);
 
     let income = 0;
     let expense = 0;
@@ -54,7 +50,6 @@ export async function GET(req) {
       const amount = Number(t.amount);
       const transactionDate = new Date(t.date);
 
-      // Only aggregate totals for the current month
       if (
         transactionDate.getMonth() === currentDate.getMonth() &&
         transactionDate.getFullYear() === currentDate.getFullYear()
@@ -78,10 +73,8 @@ export async function GET(req) {
       color: colors[index % colors.length],
     }));
 
-    // Calculate progress based on total monthly spending vs budget limit
     const budgetPercentage = budgetLimit > 0 ? Math.min((expense / budgetLimit) * 100, 100) : 0;
 
-    // Filter recent transactions specifically for the default account AND for the current month
     const recentTransactions = defaultAccountTransactions
       .filter(t => {
         const d = new Date(t.date);
@@ -105,4 +98,4 @@ export async function GET(req) {
     console.error("MOBILE DASHBOARD ERROR:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
-}
+}

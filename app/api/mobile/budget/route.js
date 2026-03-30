@@ -23,14 +23,10 @@ export async function POST(req) {
     }
 
     await db.budget.upsert({
-      where: { 
-        accountId: accountId 
-      },
-      update: { 
-        amount: parseFloat(amount) 
-      },
+      where: { accountId: accountId },
+      update: { amount: parseFloat(amount) },
       create: {
-        userId: payload.userId, 
+        userId: payload.userId,
         accountId: accountId,
         amount: parseFloat(amount),
       },

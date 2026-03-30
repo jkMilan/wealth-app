@@ -18,9 +18,9 @@ export async function POST(req) {
 
     const { accountId } = await req.json();
 
-    if (!accountId) {
-      return NextResponse.json({ error: "Account ID is required" }, { status: 400 });
-    }
+    // if (!accountId) {
+    //   return NextResponse.json({ error: "Account ID is required" }, { status: 400 });
+    // }
 
     await db.$transaction([
       db.account.updateMany({
