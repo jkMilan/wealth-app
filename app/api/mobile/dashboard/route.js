@@ -16,12 +16,9 @@ export async function GET(req) {
     }
     const userId = payload.userId;
 
-    // 1. Define date boundaries first to fix the ReferenceError
     const currentDate = new Date();
     const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999);
-
-    // 2. Fetch all user accounts
     const accounts = await db.account.findMany({
       where: { userId: userId },
       orderBy: { isDefault: "desc" }, 
@@ -30,7 +27,6 @@ export async function GET(req) {
     const totalBalance = accounts.reduce((sum, account) => sum + Number(account.balance), 0);
     const defaultAccount = accounts.find(a => a.isDefault === true) || accounts[0];
 
-    // 3. Fetch the budget for the default account
     const budgetRecord = await db.budget.findFirst({
       where: {
         userId: userId,
@@ -39,9 +35,6 @@ export async function GET(req) {
     });
     const budgetLimit = budgetRecord ? Number(budgetRecord.amount) : 0;
 
-    // 4. Fetch transactions for the current month AND the last 10 transactions
-    // Fetching all relevant transactions for the user to ensure "Recent Transactions" 
-    // are not restricted only to the current month if it's the start of the month.
     const transactions = await db.transaction.findMany({
       where: { userId: userId },
       orderBy: { date: "desc" },
@@ -52,12 +45,9 @@ export async function GET(req) {
     let expense = 0;
     const categoryTotals = {};
 
-    // 5. Calculate monthly totals for the default account
     transactions.forEach(t => {
       const amount = Number(t.amount);
       const tDate = new Date(t.date);
-
-      // Only include transactions for the default account within the current month for budget tracking
       if (t.accountId === defaultAccount?.id && tDate >= startOfMonth && tDate <= endOfMonth) {
         if (t.type === "INCOME") {
           income += Math.abs(amount);
@@ -71,7 +61,6 @@ export async function GET(req) {
       }
     });
 
-    // 6. Format pie chart data
     const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#FF0080', '#FF0000', '#000000', '#8B0000', '#008000'];
     const pieData = Object.keys(categoryTotals).map((key, index) => ({
       text: key,
@@ -81,7 +70,6 @@ export async function GET(req) {
 
     const budgetPercentage = budgetLimit > 0 ? Math.min((expense / budgetLimit) * 100, 100) : 0;
 
-    // 7. Get truly recent transactions (last 10) regardless of the month
     const recentTransactions = transactions
       .filter(t => t.accountId === defaultAccount?.id)
       .slice(0, 10);
