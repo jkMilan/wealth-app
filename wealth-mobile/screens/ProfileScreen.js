@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Scro
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ onLogout }) {
   const [user, setUser] = useState(null);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -86,6 +86,12 @@ export default function ProfileScreen() {
           {updating ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Save Changes</Text>}
         </TouchableOpacity>
       </View>
+      <TouchableOpacity 
+        onPress={onLogout}
+        className="mt-4 mb-10 p-4 rounded-xl border border-red-500/30 items-center"
+      >
+        <Text className="text-red-500 font-bold text-lg">Sign Out</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }

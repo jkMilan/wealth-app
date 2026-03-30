@@ -12,6 +12,7 @@ import AuthScreen from './screens/AuthScreen';
 import AccountsScreen from './screens/AccountsScreen';
 import SubscriptionsScreen from './screens/SubscriptionsScreen';
 import ProfileScreen from './screens/ProfileScreen';
+import RegisterScreen from './screens/RegisterScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -23,6 +24,19 @@ const PlaceholderScreen = ({ title }) => (
     <Text className="text-zinc-400 text-center">This screen is under construction.</Text>
   </View>
 );
+
+function AuthStack({ onLoginSuccess }) {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login">
+        {(props) => <AuthScreen {...props} onLoginSuccess={onLoginSuccess} />}
+      </Stack.Screen>
+      <Stack.Screen name="Register">
+        {(props) => <RegisterScreen {...props} onLoginSuccess={onLoginSuccess} />}
+      </Stack.Screen>
+    </Stack.Navigator>
+  );
+}
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -53,14 +67,18 @@ export default function App() {
   }
 
   if (!session) {
-    return <AuthScreen onLoginSuccess={(data) => setSession(data)} />;
+    // return <AuthScreen onLoginSuccess={(data) => setSession(data)} />;
+    return (
+      <NavigationContainer>
+        <AuthStack onLoginSuccess={(data) => setSession(data)} />
+      </NavigationContainer>
+    );
   }
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         
-        {/* The Main App with the Bottom Tabs */}
         <Stack.Screen name="MainTabs">
           {() => (
             <Tab.Navigator
@@ -105,8 +123,7 @@ export default function App() {
               
               <Tab.Screen name="Subs" component={SubscriptionsScreen} options={{ tabBarIcon: ({ color, size }) => <Ionicons name="sync-circle" size={size} color={color} /> }} />
               <Tab.Screen 
-                name="Profile" 
-                component={ProfileScreen} 
+                name="Profile"
                 options={{
                   tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
                   headerRight: () => (
@@ -115,12 +132,13 @@ export default function App() {
                     </TouchableOpacity>
                   )
                 }}
-              />
+              >
+                {(props) => <ProfileScreen {...props} onLogout={handleLogout} />}
+              </Tab.Screen>
             </Tab.Navigator>
           )}
         </Stack.Screen>
 
-        {/* The New Account Details Screen (Slides over the tabs!) */}
         <Stack.Screen 
           name="AccountDetails" 
           component={AccountDetailsScreen} 

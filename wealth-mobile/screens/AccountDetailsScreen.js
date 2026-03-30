@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 
@@ -67,6 +67,63 @@ export default function AccountDetailsScreen({ route, navigation }) {
     );
   }
 
+  const showAccountMenu = () => {
+    Alert.alert(
+      "Account Options",
+      "Manage your " + (accountName || account.name),
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Set as Default", 
+          onPress: () => handleSetDefault() 
+        },
+        { 
+          text: "Delete Account", 
+          style: "destructive", 
+          onPress: () => confirmDelete() 
+        }
+      ]
+    );
+  };
+
+  const handleSetDefault = async () => {
+    try {
+      const storedSession = await SecureStore.getItemAsync('wealth_ai_session');
+      const session = JSON.parse(storedSession);
+
+      const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/accounts/default', {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${session.token}`,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ accountId })
+      });
+
+      if (response.ok) {
+        Alert.alert("Success", "This is now your default account.");
+        fetchAccountDetails(); 
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not update default account.");
+    }
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure? This will delete all transactions associated with this account.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => handleDelete() }
+      ]
+    );
+  };
+
+  const handleDelete = async () => {
+    Alert.alert("Info", "Delete functionality coming soon!");
+  };
+
   return (
     <View className="flex-1 bg-zinc-900">
       {/* Custom Header */}
@@ -75,7 +132,7 @@ export default function AccountDetailsScreen({ route, navigation }) {
           <Ionicons name="chevron-back" size={28} color="#ffffff" />
         </TouchableOpacity>
         <Text className="text-white font-bold text-lg">{accountName || account.name}</Text>
-        <TouchableOpacity className="p-2 -mr-2">
+        <TouchableOpacity onPress={showAccountMenu} className="p-2 -mr-2">
           <Ionicons name="ellipsis-horizontal" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
@@ -112,11 +169,11 @@ export default function AccountDetailsScreen({ route, navigation }) {
           <View className="pb-10">
             {transactions.map((txn) => (
               <View key={txn.id} className="bg-zinc-800/80 p-4 rounded-2xl mb-3 border border-zinc-700/50 flex-row items-center">
-                <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${txn.type === 'INCOME' ? 'bg-green-500/20' : 'bg-zinc-700'}`}>
+                <View className={`w-12 h-12 rounded-full items-center justify-center mr-4 ${txn.type === 'INCOME' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
                   <Ionicons 
                     name={txn.type === 'INCOME' ? 'arrow-down' : 'arrow-up'} 
                     size={20} 
-                    color={txn.type === 'INCOME' ? '#4ade80' : '#ffffff'} 
+                    color={txn.type === 'INCOME' ? '#4ade80' : '#f87171'} 
                   />
                 </View>
 
@@ -130,7 +187,7 @@ export default function AccountDetailsScreen({ route, navigation }) {
                 </View>
 
                 <View className="items-end">
-                  <Text className={`font-bold text-base ${txn.type === 'INCOME' ? 'text-green-400' : 'text-white'}`}>
+                  <Text className={`font-bold text-base ${txn.type === 'INCOME' ? 'text-green-400' : 'text-red-400'}`}>
                     {txn.type === 'INCOME' ? '+' : '-'} {Number(txn.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </Text>
                 </View>

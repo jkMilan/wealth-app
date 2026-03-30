@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store'; 
 
-export default function AuthScreen() {
+export default function AuthScreen({ onLoginSuccess, navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -104,8 +104,8 @@ export default function AuthScreen() {
           {loading ? <ActivityIndicator color="#fff" /> : <Text className="text-white font-bold text-lg">Sign In</Text>}
         </TouchableOpacity>
 
-        <TouchableOpacity className="w-full py-4 rounded-xl items-center border border-zinc-600" onPress={signUpWithEmail} disabled={loading}>
-          <Text className="text-white font-bold text-lg">Create Account</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text className="text-blue-400 text-center font-bold">Need an account? Create one</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>

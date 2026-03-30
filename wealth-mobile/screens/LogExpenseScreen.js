@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -379,50 +380,57 @@ export default function LogExpenseScreen({ navigation }) {
       </ScrollView>
 
       <Modal visible={modalVisible} transparent={true} animationType="slide">
-        <View className="flex-1 justify-end bg-black/60">
-          <View className="bg-zinc-900 rounded-t-3xl p-6 min-h-[50%] border-t border-zinc-700">
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-xl font-bold text-white capitalize">Select {modalType}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close-circle" size={28} color="#71717a" />
-              </TouchableOpacity>
-            </View>
+        <View style={{ flex: 1, justifyContent: 'end', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+          <SafeAreaView 
+            edges={['top']} 
+            className="bg-zinc-900 rounded-t-3xl border-t border-zinc-700"
+          >
+            <View style={{ padding: 24, paddingTop: 60, minHeight: '50%' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <Text style={{ fontSize: 20, color: 'white', fontWeight: 'bold' }}>
+                  Select {modalType}
+                </Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}>
+                  <Ionicons name="close-circle" size={28} color="#71717a" />
+                </TouchableOpacity>
+              </View>
             
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {modalType === 'account' && accounts.map(acc => (
-                <TouchableOpacity 
-                  key={acc.id} 
-                  className="py-4 border-b border-zinc-800"
-                  onPress={() => { setSelectedAccount(acc); setModalVisible(false); }}
-                >
-                  <Text className="text-white text-lg">{acc.name} (LKR {Number(acc.balance).toFixed(2)})</Text>
-                </TouchableOpacity>
-              ))}
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {modalType === 'account' && accounts.map(acc => (
+                  <TouchableOpacity 
+                    key={acc.id} 
+                    className="py-4 border-b border-zinc-800"
+                    onPress={() => { setSelectedAccount(acc); setModalVisible(false); }}
+                  >
+                    <Text className="text-white text-lg">{acc.name} (LKR {Number(acc.balance).toFixed(2)})</Text>
+                  </TouchableOpacity>
+                ))}
 
-              {modalType === 'category' && activeCategories.map(cat => (
-                <TouchableOpacity 
-                  key={cat.id} 
-                  className="py-4 border-b border-zinc-800 flex-row items-center"
-                  onPress={() => { setSelectedCategory(cat); setModalVisible(false); }}
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-4" style={{ backgroundColor: (cat.color || '#9ca3af') + '33' }}>
-                    <Ionicons name={getIconName(cat.icon)} size={20} color={cat.color || '#9ca3af'} />
-                  </View>
-                  <Text className="text-white text-lg">{cat.name || cat.label}</Text>
-                </TouchableOpacity>
-              ))}
+                {modalType === 'category' && activeCategories.map(cat => (
+                  <TouchableOpacity 
+                    key={cat.id} 
+                    className="py-4 border-b border-zinc-800 flex-row items-center"
+                    onPress={() => { setSelectedCategory(cat); setModalVisible(false); }}
+                  >
+                    <View className="w-10 h-10 rounded-full items-center justify-center mr-4" style={{ backgroundColor: (cat.color || '#9ca3af') + '33' }}>
+                      <Ionicons name={getIconName(cat.icon)} size={20} color={cat.color || '#9ca3af'} />
+                    </View>
+                    <Text className="text-white text-lg">{cat.name || cat.label}</Text>
+                  </TouchableOpacity>
+                ))}
 
-              {modalType === 'interval' && INTERVALS.map(int => (
-                <TouchableOpacity 
-                  key={int.id} 
-                  className="py-4 border-b border-zinc-800"
-                  onPress={() => { setRecurringInterval(int); setModalVisible(false); }}
-                >
-                  <Text className="text-white text-lg">{int.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+                {modalType === 'interval' && INTERVALS.map(int => (
+                  <TouchableOpacity 
+                    key={int.id} 
+                    className="py-4 border-b border-zinc-800"
+                    onPress={() => { setRecurringInterval(int); setModalVisible(false); }}
+                  >
+                    <Text className="text-white text-lg">{int.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </SafeAreaView>
         </View>
       </Modal>
 

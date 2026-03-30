@@ -1,12 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, ActivityIndicator, RefreshControl, ScrollView, Dimensions, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+import { 
+  View, Text, ActivityIndicator, RefreshControl, ScrollView, 
+  Dimensions, TouchableOpacity, Alert, Modal, TextInput,
+  KeyboardAvoidingView, Platform 
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { PieChart } from 'react-native-gifted-charts';
 
 export default function DashboardScreen({ navigation }) {
-  // We added pieData, budgetLimit, and budgetPercentage directly to state
   const [dashboardData, setDashboardData] = useState({ 
     totalBalance: 0, accounts: [], income: 0, expense: 0, transactions: [], 
     budgetLimit: 0, budgetPercentage: 0, pieData: [] 
@@ -218,7 +221,9 @@ export default function DashboardScreen({ navigation }) {
 
         <View className="flex-row justify-between items-center mb-4 ml-1 pr-2">
           <Text className="text-xl font-bold text-white">Recent Transactions</Text>
-          <TouchableOpacity><Text className="text-blue-400 text-sm font-bold">View All</Text></TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {const defaultAccount = dashboardData.accounts.find(a => a.isDefault) || dashboardData.accounts[0];
+              navigation.navigate('AccountDetails', { accountId: defaultAccount.id, accountName: defaultAccount.name });}}><Text className="text-blue-400 text-sm font-bold">View All</Text></TouchableOpacity>
         </View>
         
         {dashboardData.transactions?.length === 0 ? (
@@ -233,22 +238,46 @@ export default function DashboardScreen({ navigation }) {
       </ScrollView>
 
       <Modal animationType="slide" transparent={true} visible={budgetModalVisible}>
-        <View className="flex-1 justify-end bg-black/60">
-          <View className="bg-zinc-900 p-6 rounded-t-3xl border-t border-zinc-800">
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-white text-xl font-bold">Set Monthly Budget</Text>
-              <TouchableOpacity onPress={() => setBudgetModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#71717a" />
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          className="flex-1"
+        >
+          <View className="flex-1 justify-end bg-black/60">
+            <View className="bg-zinc-900 p-6 rounded-t-3xl border-t border-zinc-800">
+              <View className="flex-row justify-between items-center mb-6">
+                <Text className="text-white text-xl font-bold">Set Monthly Budget</Text>
+                <TouchableOpacity onPress={() => setBudgetModalVisible(false)}>
+                  <Ionicons name="close" size={24} color="#71717a" />
+                </TouchableOpacity>
+              </View>
+
+              <Text className="text-zinc-400 mb-2">Target Amount (LKR)</Text>
+        
+              <TextInput 
+                value={newBudget} 
+                onChangeText={setNewBudget} 
+                keyboardType="numeric" 
+                className="bg-zinc-800 p-4 rounded-xl text-white mb-6 border border-zinc-700 text-lg font-bold" 
+                placeholder="e.g. 70000" 
+                placeholderTextColor="#9ca3af" 
+                autoFocus 
+              />
+
+              <TouchableOpacity 
+                onPress={handleSaveBudget} 
+                disabled={isUpdatingBudget} 
+                className={`bg-blue-600 p-4 rounded-xl items-center ${isUpdatingBudget ? 'opacity-50' : ''}`}
+              >
+                {isUpdatingBudget ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-bold text-lg">Save Budget</Text>
+                )}
               </TouchableOpacity>
+              <View className="h-10" />
             </View>
-            <Text className="text-zinc-400 mb-2">Target Amount (LKR)</Text>
-            <TextInput value={newBudget} onChangeText={setNewBudget} keyboardType="numeric" className="bg-zinc-800 p-4 rounded-xl text-white mb-6 border border-zinc-700 text-lg font-bold" placeholder="e.g. 70000" placeholderTextColor="#52525b" autoFocus />
-            <TouchableOpacity onPress={handleSaveBudget} disabled={isUpdatingBudget} className={`bg-blue-600 p-4 rounded-xl items-center ${isUpdatingBudget ? 'opacity-50' : ''}`}>
-              {isUpdatingBudget ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Save Budget</Text>}
-            </TouchableOpacity>
-            <View className="h-10" />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
