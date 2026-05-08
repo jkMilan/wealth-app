@@ -24,7 +24,7 @@
     "csv-parser": "^3.2.0",
     "date-fns": "^4.1.0",
     "imapflow": "^1.2.12",
-    "inngest": "^3.54.1",
+    "inngest": "^3.54.2",
     "jose": "^6.2.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
