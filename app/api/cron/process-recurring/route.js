@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/prisma";
 
-export async function POST(req) {
+export async function GET(req) {
   try {
     const recurringTransactions = await db.transaction.findMany({
       where: {
         isRecurring: true,
         status: "COMPLETED",
-        OR: [
-          { lastProcessed: null },
-          { nextRecurringDate: { lte: new Date() } },
-        ],
+        nextRecurringDate: {
+          lte: new Date(),
+        },
       },
     });
 
@@ -50,7 +49,7 @@ export async function POST(req) {
           data: {
             lastProcessed: new Date(),
             nextRecurringDate: calculateNextRecurringDate(
-              new Date(),
+              transaction.nextRecurringDate,
               transaction.recurringInterval
             ),
           },
