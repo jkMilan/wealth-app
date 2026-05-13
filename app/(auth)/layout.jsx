@@ -4,9 +4,7 @@ import Link from "next/link";
 export default function AuthLayout({ children }) {
   return (
     <div className="flex min-h-screen bg-white">
-      {/* Left Side - Branding/Hero (Hidden on smaller screens) */}
       <div className="hidden lg:flex lg:w-1/2 bg-slate-900 flex-col justify-center px-16 relative overflow-hidden">
-        {/* Soft background glow */}
         <div className="absolute inset-0 bg-blue-600/10 backdrop-blur-3xl" />
         
         <div className="relative z-10 max-w-lg">
@@ -24,9 +22,7 @@ export default function AuthLayout({ children }) {
         </div>
       </div>
 
-      {/* Right Side - Form Container */}
       <div className="flex-1 flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 bg-white relative">
-        {/* Back to Home Button for mobile */}
         <div className="absolute top-8 left-8 lg:hidden">
           <Link href="/" className="font-bold text-xl text-blue-600">
             Wealth AI

@@ -39,7 +39,6 @@ export default function EmailTemplate({
         <Body className="bg-slate-900 font-sans my-auto mx-auto px-2 py-10">
           <Container className="border border-solid border-[#eaeaea] rounded-xl my-[40px] mx-auto p-[30px] max-w-[500px] bg-white shadow-lg">
             
-            {/* Logo */}
             <Section className="mt-2 mb-8 text-center">
               <Text className="text-blue-600 text-2xl font-bold m-0 tracking-tight">
                 Wealth AI
@@ -48,13 +47,11 @@ export default function EmailTemplate({
 
             {children}
 
-            {/* Disclaimer */}
             <Text className="text-gray-500 text-[13px] leading-[24px] text-center mt-8 pt-4 border-t border-gray-100">
               Thank you for using Wealth AI. Keep tracking your finances for better financial health!
             </Text>
           </Container>
 
-          {/* Footer outside the card */}
           <Text className="text-slate-400 text-[12px] text-center mt-6">
             © 2026 Wealth AI. All rights reserved.
           </Text>
@@ -71,7 +68,6 @@ export default function EmailTemplate({
           Monthly Report: {data?.month}
         </Heading>
 
-        {/* Main Stats */}
         <Section className="bg-gray-50 border border-gray-100 rounded-lg p-6 mb-6">
           <div className="mb-4">
             <Text className="text-gray-500 m-0 text-sm font-medium">Total Income</Text>
@@ -89,7 +85,6 @@ export default function EmailTemplate({
           </div>
         </Section>
 
-        {/* AI Insights */}
         {data?.insights && data.insights.length > 0 && (
           <Section className="bg-blue-50 border border-blue-100 rounded-lg p-6 mb-6">
             <Heading className="text-blue-900 text-[16px] font-bold m-0 mb-4">Wealth Insights</Heading>

@@ -126,7 +126,6 @@ export default function AccountDetailsScreen({ route, navigation }) {
 
   return (
     <View className="flex-1 bg-zinc-900">
-      {/* Custom Header */}
       <View className="px-4 pt-12 pb-4 flex-row items-center justify-between border-b border-zinc-800">
         <TouchableOpacity onPress={() => navigation.goBack()} className="p-2 -ml-2">
           <Ionicons name="chevron-back" size={28} color="#ffffff" />
@@ -141,7 +140,6 @@ export default function AccountDetailsScreen({ route, navigation }) {
         className="flex-1 px-4 pt-6"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
       >
-        {/* Big Balance Card */}
         <View className="bg-gradient-to-br from-blue-900 to-zinc-900 p-6 rounded-3xl border border-blue-800/50 mb-8 shadow-lg">
           <Text className="text-blue-200 font-bold uppercase tracking-wider text-xs mb-2">Available Balance</Text>
           <Text className="text-white text-4xl font-black mb-1">
@@ -158,7 +156,6 @@ export default function AccountDetailsScreen({ route, navigation }) {
 
         <Text className="text-white text-xl font-bold mb-4 px-1">Recent Transactions</Text>
 
-        {/* Transactions List */}
         {transactions.length === 0 ? (
           <View className="bg-zinc-800/50 p-8 rounded-2xl items-center justify-center border border-zinc-800 mt-2">
             <Ionicons name="receipt-outline" size={48} color="#52525b" className="mb-4" />

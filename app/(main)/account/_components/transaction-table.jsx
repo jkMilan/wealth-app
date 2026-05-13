@@ -50,7 +50,6 @@ const TransactionTable = ({ transactions }) => {
     const filteredAndSortedTransactions = useMemo(() => {
         let result = [...transactions];
 
-        // Apply search filter
         if (searchTerm) {
             const searchLower = searchTerm.toLowerCase();
             result = result.filter((transaction) =>
@@ -58,7 +57,6 @@ const TransactionTable = ({ transactions }) => {
             );
         }
 
-        // Apply recurring filter
         if (recurringFilter) {
             result = result.filter((transaction) => {
                 if (recurringFilter === "RECURRING") return transaction.isRecurring;
@@ -66,12 +64,9 @@ const TransactionTable = ({ transactions }) => {
             });
         }
 
-        // Apply type filter
         if (typeFilter) {
             result = result.filter((transaction) => transaction.type === typeFilter);
         }
-
-        // Apply Sorting
         result.sort((a, b) => {
             let comparison = 0
 
@@ -95,7 +90,6 @@ const TransactionTable = ({ transactions }) => {
         return result;
     }, [transactions, searchTerm, typeFilter, recurringFilter, sortConfig]);
 
-    // Pagination calculation
     const totalPages = Math.ceil(
         filteredAndSortedTransactions.length / ITEMS_PER_PAGE
     );
@@ -167,7 +161,6 @@ const TransactionTable = ({ transactions }) => {
             {deleteLoading && (
                 <BarLoader className="mt-4" width={"100%"} color="#9333ea" />
             )}
-            {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -238,7 +231,6 @@ const TransactionTable = ({ transactions }) => {
                 </div>
             </div>
 
-            {/* Transaction */}
             <div className="border rounded-md">
                 <Table>
                     <TableHeader>
@@ -408,7 +400,6 @@ const TransactionTable = ({ transactions }) => {
                 </Table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
                 <div className="flex items-center justify-between gap-2">
                     <Button

@@ -91,10 +91,8 @@ export async function deleteBudget(accountId) {
         const user = await checkUser();
         if (!user) throw new Error("Unauthorized");
         
-        // Ensure accountId is present
         if (!accountId) throw new Error("Account ID is required");
 
-        // Delete the budget linked to this specific account
         await db.budget.delete({
             where: {
                 accountId: accountId,

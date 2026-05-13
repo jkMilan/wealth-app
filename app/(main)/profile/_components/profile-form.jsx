@@ -59,7 +59,6 @@ export default function ProfileForm({ user }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Hidden File Input */}
       <input 
         type="file" 
         accept="image/png, image/jpeg, image/jpg, image/gif" 
@@ -67,8 +66,6 @@ export default function ProfileForm({ user }) {
         ref={fileInputRef} 
         onChange={handleImageChange} 
       />
-
-      {/* Avatar Display - Centered and isolated */}
       <div className="flex flex-col items-center sm:items-start gap-4">
         <div className="flex items-center gap-4">
         <div className="relative h-24 w-24 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-3xl font-bold text-blue-700 overflow-hidden shadow-sm group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
@@ -78,12 +75,10 @@ export default function ProfileForm({ user }) {
             getInitials(name)
           )}
           
-          {/* Overlay that appears on hover, or is always visible at the bottom */}
           <div className="absolute bottom-0 w-full bg-black/50 py-1 flex justify-center text-white opacity-80 group-hover:opacity-100 transition-opacity">
             <Camera size={14} />
           </div>
         </div>
-        {/* Inputs */}
       <div className="grid grid-cols-1 gap-6 pt-4 border-t">
         <div className="space-y-2">
           <Label htmlFor="name">Full Name</Label>
@@ -107,7 +102,6 @@ export default function ProfileForm({ user }) {
       </div>
       </div>
 
-        {/* Cancel button if they uploaded an image */}
         {imageUrl !== user?.imageUrl && imageUrl && (
           <Button 
             type="button" 
@@ -122,9 +116,6 @@ export default function ProfileForm({ user }) {
         
       </div>
 
-      
-
-      {/* Submit */}
       <div className="pt-6 border-t flex justify-end">
         <Button 
           type="submit" 

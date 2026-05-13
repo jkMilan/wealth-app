@@ -77,7 +77,7 @@ export async function DELETE(req) {
     if (!id) {
       return NextResponse.json({ error: "Subscription ID is required" }, { status: 400 });
     }
-
+    
     await db.transaction.update({
       where: { 
         id,

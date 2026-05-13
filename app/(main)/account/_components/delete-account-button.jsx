@@ -27,7 +27,7 @@ export default function DeleteAccountButton({ accountId }) {
     useEffect(() => {
         if (deletedAccount?.success) {
             toast.success("Account deleted successfully!");
-            router.push("/dashboard"); // Kick them back to the dashboard
+            router.push("/dashboard");
         } else if (deleteError || deletedAccount?.error) {
             toast.error(deleteError?.message || deletedAccount?.error);
         }

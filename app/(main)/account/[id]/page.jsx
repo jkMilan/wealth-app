@@ -41,7 +41,6 @@ const AccountPage = async ({ params }) => {
                 </div>
                 <div className="flex items-center gap-2">
                 <DeleteAccountButton accountId={account.id} />
-                
                 <ExportButton 
                     transactions={transactions} 
                     accountName={account.name} 
@@ -51,14 +50,12 @@ const AccountPage = async ({ params }) => {
         
         </div>
 
-        {/* Chart Section */}
         <Suspense
         fallback={<BarLoader className="mt-4" width={"100%"} color="#9333ea"/>}
         >
             <AccountChart transactions={transactions} />
         </Suspense>
         
-        {/* Transaction Table */}
         <Suspense
         fallback={<BarLoader className="mt-4" width={"100%"} color="#9333ea"/>}
         >

@@ -75,14 +75,11 @@ const BudgetProgress = ({ initialBudget, currentExpanses, accountId }) => {
 
     return (
         <Card>
-            {/* 1. HEADER: Title on the left, Buttons on the far right */}
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm sm:text-base font-medium">Monthly Budget (Default Account)</CardTitle>
 
-                {/* Only show these action buttons if we are NOT editing */}
                 {!isEditing && (
                     <div className="flex items-center gap-2">
-                        {/* Show Delete button only if a budget exists */}
                         {initialBudget && (
                             <Button
                                 variant="ghost"
@@ -96,7 +93,6 @@ const BudgetProgress = ({ initialBudget, currentExpanses, accountId }) => {
                             </Button>
                         )}
                         
-                        {/* Edit Button (Styled as outline to match the image perfectly) */}
                         <Button
                             variant="outline"
                             size="icon"
@@ -109,10 +105,8 @@ const BudgetProgress = ({ initialBudget, currentExpanses, accountId }) => {
                 )}
             </CardHeader>
 
-            {/* 2. CONTENT: Input Box OR Progress Bar */}
             <CardContent>
                 {isEditing ? (
-                    // EDIT MODE
                     <div className="flex items-center gap-2 pt-2">
                         <Input
                             type="number"
@@ -131,11 +125,9 @@ const BudgetProgress = ({ initialBudget, currentExpanses, accountId }) => {
                         </Button>
                     </div>
                 ) : (
-                    // VIEW MODE
                     <div className="pt-2">
                         {initialBudget ? (
                             <div className="space-y-3">
-                                {/* The text description sits right above the bar */}
                                 <CardDescription className="text-sm font-medium">
                                     LKR {currentExpanses.toFixed(2)} of LKR {initialBudget.amount.toFixed(2)} spent
                                 </CardDescription>

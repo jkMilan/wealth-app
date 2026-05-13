@@ -30,12 +30,9 @@ const AccountChart = ({ transactions }) => {
             ? startOfDay(subDays(now, range.days))
             : startOfDay(new Date(0));
 
-        // Filter transactions within the date range
         const filtered = transactions.filter(
             (t) => new Date(t.date) >= startDate && new Date(t.date) <= endOfDay(now)
         );
-
-        // Group transactions by day
         const grouped = filtered.reduce((acc, transaction) => {
             const date = format(transaction.date, "MMM dd");
 
@@ -52,7 +49,6 @@ const AccountChart = ({ transactions }) => {
             return acc;
         }, {});
 
-        // Convert to array and sort by date 
         return Object.values(grouped).sort(
             (a, b) => new Date(a.date) - new Date(b.date)
         );

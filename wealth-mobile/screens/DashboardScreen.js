@@ -141,7 +141,6 @@ export default function DashboardScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}
       >
-        {/* --- ACCOUNT CARDS (Restored) --- */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-6 h-40">
           {dashboardData.accounts?.map((account, index) => (
             <TouchableOpacity 
@@ -169,7 +168,6 @@ export default function DashboardScreen({ navigation }) {
           ))}
         </ScrollView>
 
-        {/* --- BUDGET CARD --- */}
         <View className="bg-zinc-800 rounded-3xl p-6 mb-6 border border-zinc-700/50">
            <View className="flex-row justify-between items-center mb-2">
              <Text className="text-white font-bold text-lg">Monthly Budget</Text>
@@ -189,7 +187,6 @@ export default function DashboardScreen({ navigation }) {
            <Text className="text-zinc-500 text-xs text-right mt-2 font-medium">{budgetPercentage.toFixed(1)}% used</Text>
         </View>
 
-        {/* --- INCOME / EXPENSE BOXES --- */}
         <View className="flex-row justify-between mb-8">
            <View className="bg-zinc-800 rounded-2xl p-4 flex-1 mr-2 border border-zinc-700/50">
              <Text className="text-zinc-400 text-xs mb-1 uppercase">Income</Text>

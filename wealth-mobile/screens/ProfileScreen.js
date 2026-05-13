@@ -46,7 +46,7 @@ export default function ProfileScreen({ onLogout }) {
 
       if (response.ok) {
         Alert.alert("Success", "Profile updated successfully!");
-        fetchProfile(); // Refresh UI
+        fetchProfile(); 
       }
     } catch (error) {
       Alert.alert("Error", "Failed to update profile.");

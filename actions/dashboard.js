@@ -94,14 +94,12 @@ export async function getDashboardData(mobileUserId = null) {
     });
     const defaultAccount = accounts.find(a => a.isDefault === true) || accounts[0];
 
-    // Fetch ALL transactions for the user so the dashboard dropdown works
     const transactions = await db.transaction.findMany({
       where: { userId: userId },
       orderBy: { date: "desc" }, 
       include: { account: { select: { name: true } } }
     });
 
-    // --- MATH FOR "THIS MONTH" ONLY ---
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -114,7 +112,6 @@ export async function getDashboardData(mobileUserId = null) {
       const amount = Number(t.amount);
       const txDate = new Date(t.date);
 
-      // ONLY add to Pie Chart and Totals if it happened THIS MONTH
       if (txDate >= startOfMonth && txDate <= endOfMonth) {
         if (t.type === "INCOME") {
           income += Math.abs(amount);

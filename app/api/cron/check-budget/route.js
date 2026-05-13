@@ -8,6 +8,7 @@ export async function POST(req) {
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response('Unauthorized', { status: 401 });
   }
+  
   try {
     const budgets = await db.budget.findMany({
       include: {

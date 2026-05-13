@@ -36,7 +36,7 @@ export default function AccountsScreen({ navigation }) {
       if (response.ok) {
         setModalVisible(false);
         setNewAccount({ name: '', type: 'CURRENT', balance: '' });
-        fetchAccounts(); // Refresh the list!
+        fetchAccounts();
       } else {
         Alert.alert("Error", "Could not save account");
       }
@@ -53,7 +53,6 @@ export default function AccountsScreen({ navigation }) {
       if (!storedSession) return;
       const session = JSON.parse(storedSession);
 
-      // Point this to your local IP for testing, then Vercel later
       const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/dashboard', {
         headers: { 'Authorization': `Bearer ${session.token}` }
       });
@@ -99,7 +98,6 @@ export default function AccountsScreen({ navigation }) {
       className="flex-1 bg-zinc-950 px-4 pt-4"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />}
     >
-      {/* Total Balance Header */}
       <View className="bg-zinc-900 p-6 rounded-3xl border border-zinc-800 mb-6">
         <Text className="text-zinc-400 text-sm font-medium mb-1">Total Balance</Text>
         <Text className="text-white text-3xl font-bold">
@@ -109,7 +107,6 @@ export default function AccountsScreen({ navigation }) {
 
       <Text className="text-white text-xl font-bold mb-4">Your Accounts</Text>
 
-      {/* Accounts List */}
       {accounts.map((account) => (
         <TouchableOpacity 
           key={account.id}
@@ -137,7 +134,6 @@ export default function AccountsScreen({ navigation }) {
         </TouchableOpacity>
       ))}
 
-      {/* Add Account Button */}
       <TouchableOpacity 
           onPress={() => setModalVisible(true)}
           className="border-2 border-dashed border-zinc-800 p-4 rounded-2xl items-center justify-center mt-4 mb-10"
@@ -148,7 +144,6 @@ export default function AccountsScreen({ navigation }) {
           </View>
         </TouchableOpacity>
       </ScrollView>
-      {/* Add Account Modal */}
       <Modal animationType="slide" transparent={true} visible={modalVisible}>
         <View className="flex-1 justify-end bg-black/60">
           <View className="bg-zinc-900 p-6 rounded-t-3xl border-t border-zinc-800">

@@ -3,7 +3,6 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Ref
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 
-// Reusing your icon mapper for consistency!
 const getIconName = (lucideName) => {
   const map = {
     'Wallet': 'wallet', 'Laptop': 'laptop', 'TrendingUp': 'trending-up',
@@ -13,7 +12,7 @@ const getIconName = (lucideName) => {
     'Smile': 'happy', 'Plane': 'airplane', 'Shield': 'shield-checkmark',
     'Gift': 'gift', 'Receipt': 'receipt', 'MoreHorizontal': 'ellipsis-horizontal'
   };
-  return map[lucideName] || 'sync-circle'; // sync icon as default for subs
+  return map[lucideName] || 'sync-circle';
 };
 
 export default function SubscriptionsScreen({ navigation }) {
@@ -28,7 +27,6 @@ export default function SubscriptionsScreen({ navigation }) {
       if (!storedSession) return;
       const session = JSON.parse(storedSession);
 
-      // Fetching from your Next.js backend
       const response = await fetch('https://wealth-app-three.vercel.app/api/mobile/subscriptions', {
         headers: { 'Authorization': `Bearer ${session.token}` }
       });
@@ -38,9 +36,7 @@ export default function SubscriptionsScreen({ navigation }) {
       if (response.ok && data.subscriptions) {
         setSubscriptions(data.subscriptions);
         
-        // Calculate the total monthly cost of all active subscriptions
         const total = data.subscriptions.reduce((sum, sub) => {
-            // Normalize everything to a monthly cost for the summary card
             let monthlyCost = Number(sub.amount);
             if (sub.recurringInterval === 'YEARLY') monthlyCost = monthlyCost / 12;
             if (sub.recurringInterval === 'WEEKLY') monthlyCost = monthlyCost * 4.33;
@@ -52,7 +48,6 @@ export default function SubscriptionsScreen({ navigation }) {
       }
     } catch (err) {
       console.error('Failed to fetch subscriptions:', err);
-      // Fallback dummy data just so you can see the UI while testing!
       setSubscriptions([
         { id: '1', description: 'Netflix Premium', amount: 3500.00, recurringInterval: 'MONTHLY', category: { name: 'Entertainment', icon: 'Film', color: '#a855f7' } },
         { id: '2', description: 'Power World Gym', amount: 4000.00, recurringInterval: 'MONTHLY', category: { name: 'Personal Care', icon: 'HeartPulse', color: '#ec4899' } },
@@ -122,8 +117,6 @@ export default function SubscriptionsScreen({ navigation }) {
         className="flex-1 px-4 pt-6"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#ffffff" />}
       >
-        
-        {/* Header Summary Card */}
         <View className="bg-gradient-to-br from-zinc-800 to-zinc-900 p-6 rounded-3xl border border-zinc-700/50 mb-8 shadow-lg">
           <View className="flex-row items-center mb-2">
             <View className="bg-blue-500/20 p-2 rounded-full mr-3">
@@ -144,7 +137,6 @@ export default function SubscriptionsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Subscriptions List */}
         {subscriptions.length === 0 ? (
           <View className="bg-zinc-800/50 p-8 rounded-2xl items-center justify-center border border-zinc-800 mt-4">
             <Ionicons name="receipt-outline" size={48} color="#52525b" className="mb-4" />
@@ -160,7 +152,6 @@ export default function SubscriptionsScreen({ navigation }) {
                 onPress={() => handleSubscriptionOptions(sub)}
                 activeOpacity={0.7}
               >
-                {/* Dynamic Category Icon */}
                 <View 
                   className="w-12 h-12 rounded-xl items-center justify-center mr-4" 
                   style={{ backgroundColor: (sub.category?.color || '#9ca3af') + '20' }}
@@ -172,7 +163,6 @@ export default function SubscriptionsScreen({ navigation }) {
                   />
                 </View>
 
-                {/* Details */}
                 <View className="flex-1">
                   <Text className="text-white font-bold text-base mb-1" numberOfLines={1}>
                     {sub.description || 'Subscription'}
@@ -182,7 +172,6 @@ export default function SubscriptionsScreen({ navigation }) {
                   </Text>
                 </View>
 
-                {/* Amount */}
                 <View className="items-end">
                   <Text className="text-white font-bold text-base">
                     {Number(sub.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}

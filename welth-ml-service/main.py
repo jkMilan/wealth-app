@@ -298,7 +298,6 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
 
         doc = nlp(text) if nlp else None
 
-        # --- 1. SPATIAL BOUNDING BOX AMOUNT EXTRACTION ---
         amount = 0.0
         ocr_data = pytesseract.image_to_data(binary, output_type=Output.DICT, config='--psm 6')
         
@@ -354,8 +353,7 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
                         continue
             if found_amounts:
                 amount = max(found_amounts)
-            
-           # --- 1. Math Verification (Total = Cash - Balance) ---
+        
             cash_amount = 0.0
             balance_amount = 0.0
         
@@ -377,7 +375,6 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
 
         print(f"DEBUG: Final Detected Amount: {amount}")
 
-        # 2. Date Extraction
         receipt_date = fuzzy_parse_date(text)
         if not receipt_date:
             date_patterns = [
@@ -394,11 +391,9 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
         if not receipt_date:
             receipt_date = datetime.now().strftime('%Y-%m-%d')
 
-        # 3. Merchant detection
         merchant = "Unknown Merchant"
         lines = [l.strip() for l in text.split("\n") if l.strip()]
         
-        # 1. First search entire text for "Anchor Merchants"
         anchor_merchants = {
             "THE FASHION STORE": "The Fashion Store",
             "COMMERCIAL BANK": "Commercial Bank",
@@ -445,11 +440,9 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
             valid_lines = []
             for line in lines[:8]:
                 upper_line = line.upper()
-                # Ignore address, noise, and technical artifacts 
                 if any(k in upper_line for k in ["WAGE", "INVOICE", "RECEIPT", "BILL", "CONTACT", "TEL:", "PHONE", "PAGE", "DATE", "TAX", "DINE IN", "ORDER", "TABLE:", "JALAN", "SELANGOR", "GST", "ALAM", "SHAHVALAM", "ROAD", "AUCKLAND", "ZEALAND", "CLIENT", "BUSINESS NAME", "WELLAWATTA", "GALLE ROAD", "CASHIER:", "STATION", "STORE:", "BRANCH:"]):
                     continue
                 
-                # Version/File-like pattern check (e.g., v.1.0, data.csv)
                 if re.search(r'v\.?\d\.\d', upper_line) or re.search(r'\.[a-z]{3,4}$', line):
                     continue
 
@@ -461,14 +454,12 @@ async def process_receipt_ocr(file: UploadFile = File(...)):
                 if len(valid_lines) > 1 and len(valid_lines[0]) < 10 and len(valid_lines[1]) < 15:
                      merchant = valid_lines[0] + " " + valid_lines[1]
 
-        # NLP Fallback 
         if merchant == "Unknown Merchant" and doc:
             invalid_orgs = ['UPI', 'CGST', 'SGST', 'IGST', 'GST', 'TAX', 'CASH', 'VISA', 'MASTERCARD', 'TOTAL', 'AMOUNT', 'NET']
             orgs = [ent.text for ent in doc.ents if ent.label_ == "ORG" and not any(bad in ent.text.upper() for bad in invalid_orgs)]
             if orgs:
                 merchant = orgs[0]
 
-        # 4. Category detection 
         combined_text = (text + " " + merchant).lower()
         category = "shopping"
         
@@ -537,26 +528,19 @@ async def process_sms_nlp(req: SMSRequest):
         text = req.message.lower()
         sender = req.sender.upper() if req.sender else ""
         
-        # --- 1. Amount Extraction ---
         amount = 0.0
-        # Look for LKR, Rs, Rs., LKR. followed by amount
         match = re.search(r'(?:rs\.?|lkr\.?)\s?([\d,]+\.\d{2}|[\d,]+)', text)
         if not match:
-            # Fallback to finding the first logical decimal amount
             match = re.search(r'([\d,]+\.\d{2})', text)
             
         if match:
             amount = float(match.group(1).replace(',', ''))
 
-        # --- 2. Transaction Type ---
         txn_type = "EXPENSE"
         if any(x in text for x in ["credited", "received", "deposit", "inward"]):
             txn_type = "INCOME"
-
-        # --- 3. Merchant / Bank Sender Identification ---
+            
         merchant = "Unknown Merchant"
-        
-        # Check if the SMS Sender is a known Sri Lankan Bank
         bank_senders = {
             "COMBANK": "Commercial Bank",
             "SAMPATH": "Sampath Bank",
@@ -574,18 +558,15 @@ async def process_sms_nlp(req: SMSRequest):
                 bank_name = val
                 break
                 
-        # Try to find specific merchant for POS/Card payments (e.g., "paid at KEELLS")
         m = re.search(r'(?:at|to)\s+([a-zA-Z0-9\s&]+?)(?:on|for|\.|$)', text)
         if m:
             extracted = m.group(1).strip().title()
             if len(extracted) > 2 and extracted.lower() not in ["your", "the"]:
                 merchant = extracted
         
-        # If no merchant found, but it's a bank notification, set merchant to the Bank name
         if merchant == "Unknown Merchant" and bank_name:
             merchant = bank_name
 
-        # --- 4. Category Sync (Perfectly matches Next.js UI) ---
         category = "other-expenses" 
         combined_text = (text + " " + merchant).lower()
         
@@ -613,7 +594,6 @@ async def process_sms_nlp(req: SMSRequest):
                 category = cat
                 break 
 
-        # Strict Bank Overrides
         if bank_name and category == "Other Expenses":
             if txn_type == "INCOME":
                 category = "Deposit"
